@@ -1,6 +1,6 @@
 # Claude Code + Cognee グラフ記憶システム
 
-**Version**: 0.1.11
+**Version**: 0.1.12
 
 Claude Codeにグラフ記憶を追加するモジュールです。セッションをまたいで作業の記憶（ルール・教訓・設計決定・障害記録）を蓄積し、後のセッションで引き出せるようにします。
 
@@ -60,8 +60,8 @@ Claude Codeにグラフ記憶を追加するモジュールです。セッショ
 | 運用形態 | GPU | メモリ | LLM |
 |---------|-----|--------|-----|
 | **クラウドAPI（強く推奨）** | 不要 | 16GB以上 | claude-sonnet-4-6 / gpt-4o 等 |
-| ローカルLLM（推奨） | RTX 4070 12GB以上 | 32GB以上 | qwen2.5:32b 以上 |
-| ローカルLLM（動作確認下限） | RTX 4060 8GB | 32GB | qwen2.5:14b — 動作はするが回答速度が遅め |
+| ローカルLLM（推奨） | VRAM 12GB 以上の GPU（※ノートPC版 RTX 4070 は VRAM 8GB なので不可・RTX 4070 デスクトップ版 / 4070 SUPER / 4070 Ti / 4080 等が該当） | 32GB以上 | qwen2.5:32b 以上 |
+| ローカルLLM（動作確認下限） | NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB） | 32GB | qwen2.5:14b — 動作はするが回答速度が遅め |
 
 詳細は `docs/GETTING_STARTED.md`「推奨LLM・推奨環境」を参照してください。
 

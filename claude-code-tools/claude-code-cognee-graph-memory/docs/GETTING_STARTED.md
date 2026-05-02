@@ -24,22 +24,22 @@
 
 | 項目 | クラウドAPI運用 | ローカルLLM運用 |
 |------|---------------|---------------|
-| GPU | 不要 | **RTX 4070 12GB 以上**を推奨 |
+| GPU | 不要 | **VRAM 12GB 以上の GPU** を推奨（※ノートPC版 RTX 4070 は VRAM 8GB なので不可。RTX 4070 デスクトップ版 / 4070 SUPER / 4070 Ti / 4080 等が該当） |
 | RAM | 16GB 以上 | **32GB 以上** |
 | LLM | claude-sonnet-4-6 / gpt-4o 等 | **qwen2.5:32b 以上**（14B 以上ならば動作可） |
 
-ローカルLLM運用は **GPU が RTX 4070 12GB 以上** の場合に現実的です。それ未満（例: RTX 4060 8GB）でも 14B クラスの動作は可能ですが、モデル重みが GPU メモリに収まらず一部 CPU offload となるため、**回答速度が顕著に遅くなります**（体感 2〜3 倍）。
+ローカルLLM運用は **VRAM 12GB 以上の GPU** の場合に現実的です。VRAM がそれ未満（例: NVIDIA GeForce RTX 4060 Laptop GPU・VRAM 8GB）でも 14B クラスの動作は可能ですが、モデル重みが GPU メモリに収まらず一部 CPU offload となるため、**回答速度が顕著に遅くなります**（体感 2〜3 倍）。
 
 ### 動作検証実績（参考）
 
 本配布物は以下の環境で全機能の動作を実証しています。
 
-- 検証環境: GPU **RTX 4060 8GB** / RAM 32GB
+- 検証環境: GPU **NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）** / RAM 32GB
 - 検証LLM: **qwen2.5:14b**（num_ctx=8192）
 - 検証結果: **20/20 成功**（remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・JSON Schema違反 0件）
 - 注意点: モデル重み 9GB に対し GPU メモリ 8GB で一部 CPU offload となり、**回答速度は遅め**（gemma4:e4b 16K 比で体感 2〜3 倍遅い）
 
-つまり **RTX 4060 8GB / qwen2.5:14b でもギリギリ全機能を動かせる** ことが実証されていますが、快適な利用のためには上記「推奨環境」を満たすことを推奨します。
+つまり **VRAM 8GB のノートPC GPU（RTX 4060 Laptop GPU）+ qwen2.5:14b** でもギリギリ全機能を動かせることが実証されていますが、快適な利用のためには上記「推奨環境」を満たすことを推奨します。
 
 ### デフォルト設定
 
