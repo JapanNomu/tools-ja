@@ -1,6 +1,6 @@
 # Claude Code + Cognee グラフ記憶システム
 
-**Version**: 0.1.10
+**Version**: 0.1.11
 
 Claude Codeにグラフ記憶を追加するモジュールです。セッションをまたいで作業の記憶（ルール・教訓・設計決定・障害記録）を蓄積し、後のセッションで引き出せるようにします。
 
@@ -51,28 +51,27 @@ Claude Codeにグラフ記憶を追加するモジュールです。セッショ
 |------|---|
 | OS | Linux（Ubuntu 22.04以降）/ WSL2 |
 | Python | 3.12以上 |
-| Ollama | 最新版 |
-| LLMモデル | llama3.1:8b（64Kコンテキスト）|
+| Ollama | 最新版（ローカルLLM運用時）|
+| LLM | qwen2.5:14b（num_ctx=8192）— ローカル運用デフォルト。本番運用にはクラウドAPI（Claude / OpenAI）を強く推奨 |
 | Claude Code | 最新版 |
 
 ### 推奨スペック
 
-グラフ記憶にはLLMを使ったエンティティ抽出が必要です。Ollamaでローカルに実行するため、以下のスペックを推奨します。
+| 運用形態 | GPU | メモリ | LLM |
+|---------|-----|--------|-----|
+| **クラウドAPI（強く推奨）** | 不要 | 16GB以上 | claude-sonnet-4-6 / gpt-4o 等 |
+| ローカルLLM（推奨） | RTX 4070 12GB以上 | 32GB以上 | qwen2.5:32b 以上 |
+| ローカルLLM（動作確認下限） | RTX 4060 8GB | 32GB | qwen2.5:14b — 動作はするが回答速度が遅め |
 
-| 項目 | 推奨スペック |
-|------|-------------|
-| GPU | RTX 4060（8GB VRAM）相当以上 |
-| メモリ | 32GB RAM以上 |
-
-> 動作検証環境: RTX 4060（8GB VRAM）+ 32GB RAM
+詳細は `docs/GETTING_STARTED.md`「推奨LLM・推奨環境」を参照してください。
 
 ### 技術スタック
 
 | 技術 | 詳細 |
 |------|------|
 | グラフ記憶エンジン | Cognee |
-| LLM（エンティティ抽出） | Llama 3.1 8B（64Kコンテキスト）|
-| LLM実行基盤 | Ollama |
+| LLM（エンティティ抽出） | qwen2.5:14b（デフォルト・ローカル）/ Claude API / OpenAI API |
+| LLM実行基盤 | Ollama（ローカル）またはクラウドAPI |
 | グラフDB | KuzuDB（Cognee内蔵）|
 | ベクトルDB | LanceDB（Cognee内蔵）|
 | 埋め込みモデル | FastEmbed all-MiniLM-L6-v2 |

@@ -42,7 +42,13 @@ MAX_RETRY = 3
 
 
 def check_ollama() -> None:
-    """Ollama 起動確認と llama3.1:8b モデル存在確認"""
+    """Ollama 起動確認と config/.env で指定された LLM モデルの存在確認"""
+    env = _load_env()
+    llm_model = env.get("LLM_MODEL", "").strip()
+    if not llm_model:
+        logger.error("config/.env に LLM_MODEL が設定されていません")
+        sys.exit(1)
+
     url = "http://localhost:11434/api/tags"
     try:
         with urllib.request.urlopen(url, timeout=5) as resp:
@@ -56,12 +62,12 @@ def check_ollama() -> None:
         sys.exit(1)
 
     model_names = [m.get("name", "") for m in data.get("models", [])]
-    if not any("llama3.1:8b" in name for name in model_names):
-        logger.error("llama3.1:8b が見つかりません。利用可能なモデル: %s", model_names)
-        logger.error("'ollama pull llama3.1:8b' を実行してからやり直してください")
+    if not any(llm_model in name for name in model_names):
+        logger.error("%s が見つかりません。利用可能なモデル: %s", llm_model, model_names)
+        logger.error("'ollama pull %s' を実行してからやり直してください", llm_model)
         sys.exit(1)
 
-    logger.info("Ollama 接続確認 OK: llama3.1:8b 利用可能")
+    logger.info("Ollama 接続確認 OK: %s 利用可能", llm_model)
 
 
 def _load_env() -> dict[str, str]:

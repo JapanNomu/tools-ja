@@ -5,6 +5,26 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.1.11] - 2026-05-02
+
+### Changed
+- 動作実証済みの推奨LLMを **qwen2.5:14b**（num_ctx=8192）へ切替しました。
+  `config/.env.example` のデフォルト `LLM_MODEL` を `llama3.1:8b` から
+  `qwen2.5:14b` に変更し、Claude API / OpenAI API の設定例もコメントで併記
+  しました。
+- `docs/GETTING_STARTED.md` に「推奨LLM・推奨環境」セクションを新設しました。
+  - クラウドAPI（Claude / OpenAI）を **強く推奨**（ほぼ100%動作・公式
+    structured output サポート）
+  - ローカルLLM運用は **GPU RTX 4070 12GB 以上** で **qwen2.5:32b 以上** を
+    推奨（14B 以上が最低ライン）
+  - 動作検証実績: GPU RTX 4060 8GB / RAM 32GB / qwen2.5:14b（num_ctx=8192）で
+    **20/20 成功**（remember 5/5 / search(CHUNKS) 5/5 / search(GRAPH_COMPLETION)
+    5/5 / recall 5/5・JSON Schema違反0件）。ただし回答速度は遅め（一部 CPU
+    offload）。
+- 既存の `llama3.1:8b` 前提の記述を `qwen2.5:14b` ／ クラウドAPI 併記へ書換
+  しました（サンプル登録失敗時の代替モデル例・recall 失敗時の注記・トラブル
+  シューティング）。
+
 ## [0.1.10] - 2026-05-02
 
 ### Changed
