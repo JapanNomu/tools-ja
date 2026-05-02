@@ -1,0 +1,42 @@
+{
+  "_comment": "Cognee グラフ記憶ハーネスを有効化するための ~/.claude/settings.json マージ用サンプル。既存の settings.json と手動でマージしてください。各値の意味は docs/HARNESS_GUIDE.md を参照。",
+
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/auto_remember_user_message.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/auto_remember_completion.py"
+          }
+        ]
+      }
+    ]
+  },
+
+  "permissions": {
+    "_comment_permissions": "Cognee MCP の主要ツール呼び出しを自動許可（毎回プロンプトされないようにする）",
+    "allow": [
+      "mcp__cognee__search",
+      "mcp__cognee__recall",
+      "mcp__cognee__remember",
+      "mcp__cognee__cognify",
+      "mcp__cognee__cognify_status",
+      "mcp__cognee__list_data",
+      "Bash(python3 ~/.claude/hooks/cognee_remember_flusher.py*)"
+    ]
+  },
+
+  "_comment_cron": "cognee_remember_flusher.py は別途 cron 等で定期実行を推奨。例（5分毎）:",
+  "_comment_cron_example": "*/5 * * * * /usr/bin/python3 /home/youruser/.claude/hooks/cognee_remember_flusher.py >> /home/youruser/.claude/cognee_flusher.log 2>&1"
+}
