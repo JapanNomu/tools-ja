@@ -8,13 +8,11 @@ UserPromptSubmit hook: ユーザー発言を Cognee グラフ記憶に自動登�
 仕組み:
 - UserPromptSubmit hook で stdin から prompt を受け取る
 - ローカルの一時ファイル ~/.claude/cognee_pending_remembers.jsonl に追記
-- 別プロセス（auto_remember_flusher.py 等）で順次 remember を実行する
-  （UserPromptSubmit hook 内で MCP 呼び出しを直接行うと、AI のターン開始が
-  遅延するため、非同期ファイルキュー方式を採用）
+- 別プロセス cognee_remember_flusher.py が定期的にキューを読み出し
+  Cognee MCP の remember を実行する
 
-または、簡易運用としてここで直接 remember を呼び出すこともできる。
-本サンプルでは後者の簡易運用版を提供する（小規模利用向け）。
-本格運用ではキュー方式を推奨。
+UserPromptSubmit hook 内で MCP 呼び出しを直接行うと AI のターン開始が
+遅延するため、本実装は非同期ファイルキュー方式を採用している。
 
 入力: stdin に JSON {"prompt": "...", "session_id": "..."}
 出力: exit 0（常に許可。記録失敗してもメッセージ送信はブロックしない）

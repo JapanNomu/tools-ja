@@ -48,6 +48,11 @@ MCP_COMMAND = str(PROJECT_ROOT / "src" / "main_src" / "start_cognee_mcp.py")
 def check_ollama() -> None:
     """Ollama 起動確認と config/.env で指定された LLM モデルの存在確認"""
     env = _load_env()
+    llm_provider = env.get("LLM_PROVIDER", "").strip().lower()
+    if llm_provider != "ollama":
+        logger.info("LLM_PROVIDER=%s のため Ollama 接続チェックをスキップ", llm_provider or "(未設定)")
+        return
+
     llm_model = env.get("LLM_MODEL", "").strip()
     if not llm_model:
         logger.error("config/.env に LLM_MODEL が設定されていません")
@@ -161,7 +166,6 @@ def list_targets() -> None:
         exists = "✅" if path.exists() else "❌ (パス未存在)"
         logger.info("  %s: %s %s", key, cfg["description"], exists)
         logger.info("         パス: %s", path)
-    logger.info("  comments: ユーザーコメント記録（--project 00027 等が必要）")
 
 
 def main() -> None:
@@ -176,11 +180,12 @@ def main() -> None:
         list_targets()
         return
 
-    check_ollama()
-
     if not args.target:
         parser.print_help()
         sys.exit(1)
+
+    if not args.dry_run:
+        check_ollama()
 
     files = collect_files(args.target)
     asyncio.run(import_files(files, dry_run=args.dry_run))

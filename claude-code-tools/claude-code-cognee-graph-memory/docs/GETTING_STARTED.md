@@ -16,7 +16,7 @@
 |------|-----|------|
 | クラウドAPI（**強く推奨**） | **Anthropic Claude API**（claude-sonnet-4-6 など）/ **OpenAI API**（gpt-4o など） | ★★★ ほぼ100%動作・公式 structured output サポート |
 | ローカルLLM（条件付き可） | qwen2.5:14b / qwen2.5:32b / qwen2.5:72b / llama3.3:70b など14B以上 | ★★ GPUに余裕があれば可 |
-| ローカルLLM（**非推奨**） | llama3.1:8b / llama3.2:3b / gemma4:e4b など | ★ structured output で JSON Schema 違反多発 |
+| ローカルLLM（**非推奨**） | qwen2.5:14b 未満のモデル（llama3.1:8b / llama3.2:3b / gemma4:e4b など） | ★ structured output で JSON Schema 違反多発 |
 
 ローカルLLM運用は API 課金を回避できますが、structured output の信頼性は API より明確に劣ります。本番運用や安定動作を求める場合は API を選んでください。
 
@@ -28,7 +28,7 @@
 | RAM | 16GB 以上 | **32GB 以上** |
 | LLM | claude-sonnet-4-6 / gpt-4o 等 | **qwen2.5:32b 以上**（14B 以上ならば動作可） |
 
-ローカルLLM運用は **VRAM 12GB 以上の GPU** の場合に現実的です。VRAM がそれ未満（例: NVIDIA GeForce RTX 4060 Laptop GPU・VRAM 8GB）でも 14B クラスの動作は可能ですが、モデル重みが GPU メモリに収まらず一部 CPU offload となるため、**回答速度が顕著に遅くなります**（体感 2〜3 倍）。
+ローカルLLM運用は **VRAM 12GB 以上の GPU** の場合に現実的です。VRAM がそれ未満（例: NVIDIA GeForce RTX 4060 Laptop GPU・VRAM 8GB）でも 14B クラスの動作は可能ですが、モデル重みが GPU メモリに収まらず一部 CPU offload となります。
 
 ### 動作検証実績（参考）
 
@@ -36,10 +36,18 @@
 
 - 検証環境: GPU **NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）** / RAM 32GB
 - 検証LLM: **qwen2.5:14b**（num_ctx=8192）
-- 検証結果: **20/20 成功**（remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・JSON Schema違反 0件）
-- 注意点: モデル重み 9GB に対し GPU メモリ 8GB で一部 CPU offload となり、**回答速度は遅め**（gemma4:e4b 16K 比で体感 2〜3 倍遅い）
+- 検証Cogneeバージョン: **1.0.5（Ladybug DB）**
+- 検証結果: **35/40 成功**（remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・cognify 5/5 ✅・improve 5/5 ✅・forget_memory 5/5 ✅・**save_interaction 0/5 ❌**＝既知の制限事項・後述）
+- 応答時間（Ladybug DB環境下の実測値）:
+  - search(CHUNKS): 平均 3.2秒（決定論的・LLM不使用）
+  - search(GRAPH_COMPLETION): 平均 14.6秒（範囲 12〜18秒）
+  - recall（Q-A・TEMPORAL routing）: 20〜24秒
+  - recall（Q-B・GRAPH_COMPLETION_COT routing）: 154〜156秒（Chain-of-Thought推論）
+  - improve / forget_memory: 全件即時（数秒以下）
 
-つまり **VRAM 8GB のノートPC GPU（RTX 4060 Laptop GPU）+ qwen2.5:14b** でもギリギリ全機能を動かせることが実証されていますが、快適な利用のためには上記「推奨環境」を満たすことを推奨します。
+**Ladybug DB（Cognee 1.0.4で導入）により graph traversal が高速化**し、qwen2.5:14b でも GRAPH_COMPLETION・recall が実用レベルの速度で動作することが実証されました（v0.1.x の KuzuDB 環境より体感大幅改善）。
+
+つまり **VRAM 8GB のノートPC GPU（RTX 4060 Laptop GPU）+ qwen2.5:14b + Ladybug DB** で全主要機能を実用速度で動かせることが実証されています。
 
 ### デフォルト設定
 
@@ -56,11 +64,11 @@ cd <クローンしたディレクトリ>
 src/venv/bin/python3 src/sample_src/load_sample.py
 ```
 
-`knowledge/sample_knowledge/` 配下の4ファイルが1件ずつCogneeのグラフ記憶に投入されます。
+`knowledge/sample_knowledge/` 配下の5ファイルが1件ずつCogneeのグラフ記憶に投入されます。
 
 ```
-2026-04-29 10:00:00 [INFO] [1/4] 01_claude_code_tips.md → dataset=sample_knowledge
-2026-04-29 10:00:30 [INFO] [2/4] 02_software_dev_lessons.md → dataset=sample_knowledge
+2026-04-29 10:00:00 [INFO] [1/5] 01_claude_code_tips.md → dataset=sample_knowledge
+2026-04-29 10:00:30 [INFO] [2/5] 02_software_dev_lessons.md → dataset=sample_knowledge
 ...
 ```
 
@@ -239,6 +247,10 @@ dry-runで投入対象一覧を事前確認できます。
 
 ## トラブルシューティング
 
+**`save_interaction` が `add_rule_associations() got an unexpected keyword argument 'context'` で失敗する**
+→ **v0.2.0 既知の制限事項**です。cognee-mcp 0.5.4 と cognee 1.0.5 のAPI不整合（cognee 1.0.5 で `add_rule_associations` の引数が `context` → `ctx` にリネームされたが cognee-mcp が未追従）。
+代替案として `remember(data="User: 質問\nAssistant: 回答")` を使用してください。永続記憶への即時保存ができます。
+
 **「SearchPreconditionError」が出る**
 → データ未投入の状態です。Step 1を先に実施してください。
 
@@ -250,3 +262,52 @@ dry-runで投入対象一覧を事前確認できます。
 
 **ノウハウ投入で `status=errored` が出る**
 → ファイルが大きすぎる可能性があります。`split_knowledge.py` で分割してから投入してください。`import_knowledge.py` は失敗時に最大3回リトライします。
+
+---
+
+## 付録: v0.1.x（Cognee 1.0.3 / KuzuDB 環境）ローカルLLM比較データ（参考）
+
+> 本セクションは v0.1.x（KuzuDB環境）でのローカルLLM比較検証データの参考記録です。v0.2.0 では Ladybug DB に置換され、qwen2.5:14b のみが動作確認対象になっています（本ファイル上部の「動作検証実績」参照）。LLM選定の参考としてください。
+
+### 検証環境（v0.1.x）
+
+- Cognee 1.0.3 / KuzuDB 0.11.3
+- GPU: NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）/ RAM 32GB
+- 検証日: 2026-05-02
+- 検証回数: 各LLM × 4ツール × 5回 = 20回
+
+### LLM × ツール 結果サマリ
+
+| LLM（num_ctx） | remember×5 | search(CHUNKS)×5 | search(GRAPH_COMPLETION)×5 | recall×5 | 合計 |
+|---|---|---|---|---|---|
+| llama3.1:8b（2048・初回） | 5/5 ✅ | 5/5 ✅ | 4/5 ⚠️（#1で JSON Schema 違反） | 1/5 ✅ + 2/5 ⚠️ + 2/5 ❌（Q-B 2/2 全敗） | 14/20 |
+| llama3.1:8b（65536・再実証） | 5/5 ✅ | 5/5 ✅ | 2/5 ✅ + 3/5 ❌（pydantic ValidationError） | 2/5 ✅ + 3/5 ❌（Q-B 2/2 全敗継続） | 14/20 |
+| llama3.2:3b（2048デフォルト） | 0/5 ❌ Timeout | （未実施） | （未実施） | （未実施） | 0/20 |
+| gemma4:e4b（16384） | 5/5 ✅ | 5/5 ✅ | **5/5 ✅** | 3/5 ✅ + 2/5 ❌（Q-B 2/2 JSON Schema 違反） | 18/20 |
+| **qwen2.5:14b（8192）** | **5/5 ✅** | **5/5 ✅** | **5/5 ✅** | **5/5 ✅**（Q-A/Q-B 全件正答） | **20/20** |
+| claude-sonnet-4-6 | 未実施（API課金回避のため） | - | - | - | - |
+
+### 主な観察事項（v0.1.x）
+
+- **qwen2.5:14b（num_ctx=8192）が唯一の全勝**（20/20）。recall Q-B（理由・経緯を含む推論）でも完答できた唯一のローカルLLM
+- **llama3.1:8b** は num_ctx を増やしても改善せず、recall Q-B では2/2全敗
+- **llama3.2:3b** は接続テスト時点で Timeout（軽量モデルすぎてエンティティ抽出が完了しない）
+- **gemma4:e4b** は GRAPH_COMPLETION で全勝するも recall Q-B で JSON Schema 違反
+- 配布物デフォルトを **qwen2.5:14b** にしている根拠データ
+
+### 検証クエリ（v0.1.x）
+
+- Q-A: `When can I run git push?`（単純事実検索）
+- Q-B: `Why is KuzuDB used in this project?`（理由・経緯を含む推論）
+
+### num_ctx 設定の根拠
+
+| モデル | num_ctx | 根拠 |
+|---|---|---|
+| llama3.1:8b | 65536 | 8B モデル重み4.7GB＋KV cache（FP16・64K）約4.0GB＝合計8.7GB。8GB GPU で一部オフロードあるが大半 GPU 動作 |
+| qwen2.5:14b | 8192 | モデル重み9GBで既にCPU offload状態。num_ctx を上げると速度更に低下するため8K上限に抑制 |
+| gemma4:e4b | 16384 | モデル重み5GB＋KV cache 1GB=合計6GBで完全GPU動作可能 |
+
+### v0.2.0 でのスコープ
+
+v0.2.0 では Cognee 1.0.5 / Ladybug DB に対応した上で **qwen2.5:14b のみ**を全機能（8ツール）で再検証しました（35/40 ✅・本ファイル上部の「動作検証実績」参照）。他LLM の v0.2.0/Ladybug DB 環境での再検証は将来の拡張余地として残しています。

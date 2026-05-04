@@ -10,7 +10,7 @@ prune後にlist_dataを呼ぶとDatabaseNotCreatedErrorが発生する。prune�
 
 ## Ollama接続エラー
 
-import_to_graph.py実行時に「Ollamaに接続できません」エラーが出る場合、Ollamaが起動していない。`ollama serve` を実行してから再試行する。llama3.1:8bがDL済みかどうかも `ollama list` で確認する。
+import_to_graph.py実行時に「Ollamaに接続できません」エラーが出る場合、Ollamaが起動していない。`ollama serve` を実行してから再試行する。qwen2.5:14b（または設定したローカルLLM）がDL済みかどうかも `ollama list` で確認する。
 
 ## recall結果が空になる
 
@@ -18,7 +18,7 @@ recallの結果が空（search_result: ['']）になる場合、グラフ化処�
 
 ## LLMフォーマットエラー（recall失敗）
 
-recall使用時にLLMのJSON応答フォーマットエラーが発生することがある（llama3.1:8bがCogneeの期待するJSON形式で応答しない場合）。このときはsearch(search_type="CHUNKS")を代替として使用すると、ベクトル検索でテキストを直接取得できる。
+recall使用時にLLMのJSON応答フォーマットエラーが発生することがある（qwen2.5:14b 未満のローカルLLMがCogneeの期待するJSON形式で応答しない場合）。このときはsearch(search_type="CHUNKS")を代替として使用すると、ベクトル検索でテキストを直接取得できる。
 
 ## .envのLLM_ENDPOINTに/v1が必要
 

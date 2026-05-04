@@ -5,6 +5,88 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.2.0] - 2026-05-04
+
+### Added
+- `knowledge/sample_knowledge/05_graph_memory_operations.md` を新規追加。
+  Cognee グラフ記憶の運用ノウハウ（cognify を呼ぶタイミング、remember と
+  save_interaction の使い分け、search 種別の選択、recall のオートルーティング、
+  forget_memory・improve・prune の使用法）を記述したサンプル投入用ファイル。
+  これに伴い同梱サンプルが 4 ファイルから 5 ファイルに増えた。
+
+### Changed
+- **Cognee バージョンを 1.0.3 → 1.0.5 にアップグレード**しました。Cognee 1.0.4 で
+  グラフDBが KuzuDB から **Ladybug DB** に置換された点に追従しています。
+  - 依存パッケージ: `kuzu==0.11.3` → `ladybug==0.16.0`（自動置換・後方互換エイリアスあり）
+  - 動作実証 Cognee バージョン: 1.0.5
+  - cognee-mcp バージョン: 0.5.4（変化なし）
+- ドキュメント全般で **「KuzuDB」表記を「Ladybug DB」**に修正しました。
+  - `README.md`（特徴説明・技術スタック表）
+  - `config/.env.example`（COGNEE_DATA_PATH コメント・データ保存先説明）
+  - `docs/SETUP.md`（動作確認バージョン・固定バージョン例）
+  - `docs/GETTING_STARTED.md`（検証Cogneeバージョン・応答時間実測値）
+- 同梱サンプルファイル数の記述を 4 → 5 に更新。
+  - `README.md`（ディレクトリ構成セクション）
+  - `docs/GETTING_STARTED.md`（投入ログ表示 `[N/M]` を含む）
+- `knowledge/sample_knowledge/03_design_decisions.md` の設計判断記述を整理。
+  KuzuDB/LanceDB/FastEmbed は Cognee 内蔵のため自動的に使われるものであり、
+  ユーザー側の選定対象ではない。「Cognee を採用した理由」に統合し、
+  グラフDBは v0.2.0=Ladybug DB / v0.1.x=KuzuDB と注記した。
+- `knowledge/sample_knowledge/04_common_errors.md` のエラー対処記述で、
+  ローカルLLM の例示を `llama3.1:8b` から `qwen2.5:14b`（v0.2.0 で唯一の
+  動作確認済みローカルLLM）に統一。
+- `harness/rules/cognee_memory_usage.md` の recall 失敗条件記述を、
+  「`llama3.1:8b` では失敗することがある」から「`qwen2.5:14b` 以外の
+  ローカルLLM では失敗することがある」に更新。
+
+### Fixed（v0.1.10〜v0.1.12 から残存していたソースコード既存欠陥の修正）
+- `src/main_src/import_to_graph.py`:
+  - `list_targets()` から、TARGET_MAP に存在しない `comments` ターゲットの
+    表示行を削除（v0.1.10 から残存していた誤表示）
+  - `check_ollama()` を `LLM_PROVIDER=ollama` の時のみ実行するよう修正
+    （クラウドAPI 設定時に意味なく失敗していた）
+  - `--dry-run` 時は `check_ollama()` をスキップするよう修正
+    （ファイル一覧表示だけのモードで Ollama 接続不要）
+- `src/knowledge_src/import_knowledge.py`:
+  - `check_ollama()` に同様の `LLM_PROVIDER=ollama` チェックを追加
+- `harness/hooks/auto_remember_user_message.py`:
+  - docstring の「簡易運用版を提供」「本サンプルでは後者の簡易運用版」記述が
+    実装（キュー方式のみ）と矛盾していた点を修正
+- `harness/hooks/cognee_remember_flusher.py`:
+  - キュー処理の `remaining` 計算条件を `not line.strip()` → `line.strip()` に修正
+    （失敗データが意図せずキューから消える内部バグ。`failed.jsonl` には退避済の
+    ためデータ消失はないが、再投入の起点であるキューの内容が誤っていた）
+  - `remember_via_mcp()` 内の不要な `sys.path.insert(main_src)` を削除
+    （fastmcp は配布物 venv の site-packages から直接インポート可能）
+
+### Verified（v0.2.0 で実証）
+- **qwen2.5:14b（num_ctx=8192）× Ladybug DB 環境で 35/40 ✅** を実証
+  - remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅
+  - cognify 5/5 ✅・improve 5/5 ✅・forget_memory 5/5 ✅
+  - **save_interaction 0/5 ❌**（既知の制限事項・後述）
+- **Ladybug DB（Cognee 1.0.4で導入）により graph traversal が高速化**し、
+  qwen2.5:14b で実用速度を達成（v0.1.x の KuzuDB 環境より体感大幅改善）。
+  - search(CHUNKS): 平均 3.2秒（決定論的・LLM不使用）
+  - search(GRAPH_COMPLETION): 平均 14.6秒（範囲 12〜18秒）
+  - recall（Q-A・TEMPORAL routing）: 20〜24秒
+  - recall（Q-B・GRAPH_COMPLETION_COT routing）: 154〜156秒
+  - improve / forget_memory: 全件即時（数秒以下）
+
+### Known Issues（既知の制限事項）
+- **save_interaction が利用不可**（cognee-mcp 0.5.4 と cognee 1.0.5 のAPI不整合）
+  - エラー: `add_rule_associations() got an unexpected keyword argument 'context'`
+  - 原因: cognee 1.0.5 で `add_rule_associations` の引数が `context` → `ctx` にリネームされたが、
+    cognee-mcp 0.5.4 が未追従（upstream `topoteretes/cognee` の main branch も同状態）
+  - 代替案: 会話ペアの永続記憶への即時保存は `remember` で代替可能
+
+### Migration（v0.1.x からのアップグレード）
+- 1.0.3 のグラフDB（KuzuDB）データはCognee 1.0.4起動時の自動マイグレーション機能で
+  Ladybug 形式に変換されます。
+- 既存データを保持したい場合: `pip install -U "cognee[fastembed]==1.0.5"` でアップグレード
+  → 初回 `cognee` 起動時に自動移行
+- 既存データをリセットしてよい場合: `forget_memory(everything=True)` で全削除後、
+  Cognee 1.0.5 環境で再 cognify
+
 ## [0.1.12] - 2026-05-03
 
 ### Fixed

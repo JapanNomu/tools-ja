@@ -44,6 +44,11 @@ MAX_RETRY = 3
 def check_ollama() -> None:
     """Ollama 起動確認と config/.env で指定された LLM モデルの存在確認"""
     env = _load_env()
+    llm_provider = env.get("LLM_PROVIDER", "").strip().lower()
+    if llm_provider != "ollama":
+        logger.info("LLM_PROVIDER=%s のため Ollama 接続チェックをスキップ", llm_provider or "(未設定)")
+        return
+
     llm_model = env.get("LLM_MODEL", "").strip()
     if not llm_model:
         logger.error("config/.env に LLM_MODEL が設定されていません")

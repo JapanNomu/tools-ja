@@ -68,9 +68,7 @@ async def remember_via_mcp(project_root: Path, data: str, dataset_name: str) -> 
     成功時 True、失敗時 False。
     """
     try:
-        # 配布物の import_to_graph.py が使っている fastmcp ClientSession を流用する
-        sys.path.insert(0, str(project_root / "src" / "main_src"))
-        # 動的インポート（fastmcp は配布物の venv に入っている前提）
+        # fastmcp は配布物の venv に入っている前提でインポート
         from fastmcp import Client
         from fastmcp.client.transports import StdioTransport
 
@@ -154,10 +152,10 @@ async def flush_once() -> None:
         else:
             append_failed(entry)
 
-    # 残り（処理に失敗したもの）はキューから消す（failed.jsonl に退避済）
+    # 失敗した有効データはキューに残す（成功分は削除・空行は捨てる・failed.jsonl にも退避済）
     remaining = [
         line for i, line in enumerate(lines)
-        if i not in succeeded_indices and not line.strip()
+        if i not in succeeded_indices and line.strip()
     ]
     if remaining:
         QUEUE_PATH.write_text("\n".join(remaining) + "\n", encoding="utf-8")

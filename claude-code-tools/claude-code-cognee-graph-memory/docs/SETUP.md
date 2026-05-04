@@ -1,7 +1,5 @@
 # 環境構築手順書
 
-バージョン: 1.0
-
 ---
 
 ## 1. 前提条件
@@ -13,7 +11,7 @@
 | OS | Linux（Ubuntu 22.04以降）/ WSL2 |
 | Python | 3.12以上 |
 | Ollama | 最新版（https://ollama.com） |
-| LLMモデル | llama3.1:8b（`ollama pull llama3.1:8b`） |
+| LLMモデル | qwen2.5:14b（`ollama pull qwen2.5:14b`） |
 | Claude Code | 最新版 |
 
 ### 1-2. Ollama 起動確認
@@ -21,7 +19,7 @@
 ```bash
 ollama serve             # バックグラウンド起動
 ollama list              # モデル一覧確認
-ollama pull llama3.1:8b  # モデルが未DLの場合
+ollama pull qwen2.5:14b  # モデルが未DLの場合
 ```
 
 ---
@@ -140,8 +138,8 @@ claude mcp list  # cognee が ✓ Connected で表示されれば完了
 |------|------|
 | インストール方法 | `pip install cognee-mcp "cognee[fastembed]"` で最新版を使用 |
 | バージョン固定ファイル | `src/requirements.txt`（未作成・将来対応） |
-| 動作確認バージョン | Cognee 1.0.3・fastmcp 3.2.4（2026-04-27時点） |
-| バージョン固定が必要な場合 | `pip install "cognee-mcp==0.5.4" "cognee[fastembed]==1.0.3"` で固定バージョンを試す |
+| 動作確認バージョン | Cognee 1.0.5・cognee-mcp 0.5.4・ladybug 0.16.0（2026-05-04時点） |
+| バージョン固定が必要な場合 | `pip install "cognee-mcp==0.5.4" "cognee[fastembed]==1.0.5"` で固定バージョンを試す |
 
 ---
 

@@ -1,6 +1,7 @@
 # Claude Code + Cognee グラフ記憶システム
 
-**Version**: 0.1.12
+**Version**: 0.2.0  
+**動作実証 Cognee バージョン**: 1.0.5（Ladybug DB対応）
 
 Claude Codeにグラフ記憶を追加するモジュールです。セッションをまたいで作業の記憶（ルール・教訓・設計決定・障害記録）を蓄積し、後のセッションで引き出せるようにします。
 
@@ -27,8 +28,38 @@ Claude Codeにグラフ記憶を追加するモジュールです。セッショ
 
 - **完全ローカル動作** — Ollama + FastEmbed。外部APIキー不要・追加費用ゼロ
 - **セッション横断** — Claude Codeのどのセッションからでも同一グラフ記憶にアクセス
-- **グラフ＋ベクトル検索** — KuzuDB（グラフ）+ LanceDB（ベクトル）による高精度な想起
+- **グラフ＋ベクトル検索** — Ladybug DB（グラフ）+ LanceDB（ベクトル）による高精度な想起
 - **役割別フォルダ構成** — 本番運用・サンプル・ナレッジ初期投入をフォルダで分離
+
+---
+
+## Ladybug DB による速度向上（v0.2.0 実測値）
+
+Cognee 1.0.4 で導入された **Ladybug DB** によりグラフ走査が高速化され、qwen2.5:14b（num_ctx=8192）でも実用速度を達成しました（v0.1.x の KuzuDB 環境より体感大幅改善）。
+
+| ツール | 応答時間 | 備考 |
+|---|---|---|
+| `search(CHUNKS)` | 平均 3.2秒（範囲 2〜5秒） | 決定論的・LLM不使用 |
+| `search(GRAPH_COMPLETION)` | 平均 14.6秒（範囲 12〜18秒） | LLM推論あり・実用速度 |
+| `recall`（Q-A・TEMPORAL routing） | 20〜24秒 | 即時応答クラス |
+| `recall`（Q-B・GRAPH_COMPLETION_COT routing） | 154〜156秒 | Chain-of-Thought 推論で長時間だが精度極高 |
+| `improve` | 全件即時（数秒以下） | session_idsなしモード |
+| `forget_memory` | 全件即時 | dataset指定/everything=True 両モード |
+| `remember`（cognify同期実行） | 平均 92秒（範囲 44〜237秒） | エンティティ抽出含む |
+| `cognify`（バックグラウンド処理） | 平均 145秒（範囲 99〜232秒） | 長文ドキュメント・MCP timeout回避のためバックグラウンド |
+
+検証環境: NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）/ RAM 32GB / qwen2.5:14b（num_ctx=8192）/ Cognee 1.0.5（Ladybug DB）
+
+---
+
+## 制限事項（v0.2.0 既知の問題）
+
+- **`save_interaction` ツールは利用不可**
+  - エラー: `add_rule_associations() got an unexpected keyword argument 'context'`
+  - 原因: cognee-mcp 0.5.4 と cognee 1.0.5 の API 不整合（cognee 1.0.5 で引数 `context` → `ctx` にリネームされたが、cognee-mcp が未追従）
+  - 代替案: 会話ペアを永続記憶に即時保存したい場合は `remember(data="User: ... / Assistant: ...")` を使用
+
+その他のツール（`remember` / `search` / `recall` / `cognify` / `improve` / `forget_memory` 等）は v0.2.0 で完全動作を実証済みです。
 
 ---
 
@@ -61,7 +92,7 @@ Claude Codeにグラフ記憶を追加するモジュールです。セッショ
 |---------|-----|--------|-----|
 | **クラウドAPI（強く推奨）** | 不要 | 16GB以上 | claude-sonnet-4-6 / gpt-4o 等 |
 | ローカルLLM（推奨） | VRAM 12GB 以上の GPU（※ノートPC版 RTX 4070 は VRAM 8GB なので不可・RTX 4070 デスクトップ版 / 4070 SUPER / 4070 Ti / 4080 等が該当） | 32GB以上 | qwen2.5:32b 以上 |
-| ローカルLLM（動作確認下限） | NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB） | 32GB | qwen2.5:14b — 動作はするが回答速度が遅め |
+| ローカルLLM（動作確認下限） | NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB） | 32GB | qwen2.5:14b — Ladybug DB環境下で実用速度（応答時間の実測値は本README上部「Ladybug DB による速度向上」表を参照） |
 
 詳細は `docs/GETTING_STARTED.md`「推奨LLM・推奨環境」を参照してください。
 
@@ -72,7 +103,7 @@ Claude Codeにグラフ記憶を追加するモジュールです。セッショ
 | グラフ記憶エンジン | Cognee |
 | LLM（エンティティ抽出） | qwen2.5:14b（デフォルト・ローカル）/ Claude API / OpenAI API |
 | LLM実行基盤 | Ollama（ローカル）またはクラウドAPI |
-| グラフDB | KuzuDB（Cognee内蔵）|
+| グラフDB | Ladybug DB（Cognee内蔵・1.0.4でKuzuDBから置換）|
 | ベクトルDB | LanceDB（Cognee内蔵）|
 | 埋め込みモデル | FastEmbed all-MiniLM-L6-v2 |
 
@@ -115,7 +146,7 @@ Claude Codeにグラフ記憶を追加するモジュールです。セッショ
 │       └── import_knowledge.py   投入（リトライ付き）
 │
 └── knowledge/
-    ├── sample_knowledge/         同梱サンプルデータ（4ファイル）
+    ├── sample_knowledge/         同梱サンプルデータ（5ファイル）
     ├── user_knowledge/           ユーザーノウハウ元データ置き場（README参照）
     └── user_chunks/              分割後の中間ファイル置き場（自動生成）
 ```

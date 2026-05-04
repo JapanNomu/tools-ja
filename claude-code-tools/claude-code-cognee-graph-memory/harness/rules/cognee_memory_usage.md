@@ -97,7 +97,7 @@ search("ModuleNotFoundError pydantic", search_type="CHUNKS")
 
 ## 7. recall は使わず search(CHUNKS) を使う
 
-`mcp__cognee__recall` は llama3.1:8b では LLM フォーマットエラーで失敗することがある。
+`mcp__cognee__recall` は qwen2.5:14b 以外のローカルLLM では LLM フォーマットエラーで失敗することがある。
 配布物の動作確認では search(CHUNKS) を使うことが推奨されている。
 
 - 検索は基本的に `search(query, search_type="CHUNKS")` を使う
