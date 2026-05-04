@@ -88,7 +88,8 @@ async def remember_via_mcp(project_root: Path, data: str, dataset_name: str) -> 
         )
 
         async with Client(transport) as client:
-            result = await client.call_tool(
+            # result =
+            await client.call_tool(
                 "remember",
                 {"data": data, "dataset_name": dataset_name},
             )
@@ -166,7 +167,8 @@ async def flush_once() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--daemon", action="store_true", help="常駐モードで一定間隔で繰り返し実行")
-    parser.add_argument("--interval", type=int, default=60, help="--daemon 時のインターバル秒（既定60）")
+    parser.add_argument("--interval", type=int, default=60,
+                        help="--daemon 時のインターバル秒（既定60）")
     args = parser.parse_args()
 
     lock = acquire_lock()

@@ -24,8 +24,8 @@ import json
 import logging
 import os
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 
 from fastmcp import Client
@@ -50,7 +50,8 @@ def check_ollama() -> None:
     env = _load_env()
     llm_provider = env.get("LLM_PROVIDER", "").strip().lower()
     if llm_provider != "ollama":
-        logger.info("LLM_PROVIDER=%s のため Ollama 接続チェックをスキップ", llm_provider or "(未設定)")
+        logger.info("LLM_PROVIDER=%s のため Ollama 接続チェックをスキップ",
+                    llm_provider or "(未設定)")
         return
 
     llm_model = env.get("LLM_MODEL", "").strip()
@@ -170,10 +171,14 @@ def list_targets() -> None:
 
 def main() -> None:
     """エントリーポイント"""
-    parser = argparse.ArgumentParser(description="MDファイルをCogneeグラフに投入する（本番運用時にClaude Codeから呼ばれる）")
+    parser = argparse.ArgumentParser(
+        description="MDファイルをCogneeグラフに投入する（本番運用時にClaude Codeから呼ばれる）"
+    )
     parser.add_argument("--target", help="投入ターゲット（sample）")
-    parser.add_argument("--dry-run", action="store_true", help="ファイル一覧を表示するだけ（投入しない）")
-    parser.add_argument("--list-targets", action="store_true", help="利用可能なターゲット一覧を表示")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="ファイル一覧を表示するだけ（投入しない）")
+    parser.add_argument("--list-targets", action="store_true",
+                        help="利用可能なターゲット一覧を表示")
     args = parser.parse_args()
 
     if args.list_targets:

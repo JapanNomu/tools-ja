@@ -5,6 +5,35 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.2.1] - 2026-05-04
+
+### Changed
+- コードスタイルのみの修正で、**動作変更なし**。v0.2.0 検証結果（UT 110 / IT 6
+  / ET 4 / ST 4 全件PASS、qwen2.5:14b マトリクス検証 8 ツール × 5 回）は
+  ロジック未変更のため引き続き有効。
+- cognee-integrations のコーディング規約（Ruff: `line-length = 100`、
+  `select = ["E", "F", "I", "W"]`、`target-version = "py310"`）に
+  準拠するため lint 修正を適用:
+  - `harness/hooks/auto_remember_completion.py`: F401 — 未使用の
+    `import os` をコメントアウトし import ブロック外に移動
+  - `harness/hooks/auto_remember_user_message.py`: F401 — 未使用の
+    `import os` と `import subprocess` をコメントアウトし import
+    ブロック外に移動
+  - `harness/hooks/cognee_remember_flusher.py`: F841 — `result =`
+    の代入をコメントアウト（関数呼び出しは保持）。E501 — argparse
+    `--interval` 行を 100 文字以内に改行
+  - `src/knowledge_src/import_knowledge.py`: E501 — logger と argparse
+    の 3 箇所を改行で 100 文字以内に
+  - `src/main_src/import_to_graph.py`: I001 — `urllib.error` と
+    `urllib.request` の import 順序をアルファベット順に入れ替え。
+    E501 — argparse description と help を改行で 100 文字以内に
+
+### Why
+- cognee-integrations への寄稿候補としてツールキットを準備（cognee 共同創業者
+  Vasilije Markovic 氏から X 上で「機能拡張の PR を送ってきていい」との招待を
+  受けたため）。cognee-integrations の CI は上記 Ruff lint ルールを強制する
+  ため、PR レビュー時に CI で却下されないよう事前に対応した。
+
 ## [0.2.0] - 2026-05-04
 
 ### Added

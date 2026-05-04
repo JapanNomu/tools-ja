@@ -30,11 +30,12 @@ UserPromptSubmit hook 内で MCP 呼び出しを直接行うと AI のターン�
 - 記録失敗してもメッセージ送信は絶対にブロックしない（exit 0 固定）
 """
 import json
-import os
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# import os
+# import subprocess
 
 # 記録対象から除外するメッセージのパターン（短すぎる挨拶等）
 MIN_LENGTH = 5  # 5文字未満は記録しない（"うん"等の短い相槌は除外）

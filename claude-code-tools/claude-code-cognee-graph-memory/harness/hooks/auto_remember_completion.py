@@ -30,10 +30,11 @@ Stop hook は AI のターン終了時に呼ばれる。Claude Code が出力し
   2. ~/.claude/settings.json の hooks.Stop に登録（settings.example.json 参照）
 """
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# import os
 
 # 記録時のデータセット名
 DATASET_NAME = "ai_responses"

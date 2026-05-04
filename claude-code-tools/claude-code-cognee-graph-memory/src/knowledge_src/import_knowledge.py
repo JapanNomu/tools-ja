@@ -46,7 +46,8 @@ def check_ollama() -> None:
     env = _load_env()
     llm_provider = env.get("LLM_PROVIDER", "").strip().lower()
     if llm_provider != "ollama":
-        logger.info("LLM_PROVIDER=%s のため Ollama 接続チェックをスキップ", llm_provider or "(未設定)")
+        logger.info("LLM_PROVIDER=%s のため Ollama 接続チェックをスキップ",
+                    llm_provider or "(未設定)")
         return
 
     llm_model = env.get("LLM_MODEL", "").strip()
@@ -117,7 +118,8 @@ async def import_one(client: Client, file_path: Path, idx: int, total: int) -> b
                 return True
 
             if "status=errored" in text:
-                logger.warning("[%d/%d] ✗ %s (試行%d/%d): errored", idx, total, rel, attempt, MAX_RETRY)
+                logger.warning("[%d/%d] ✗ %s (試行%d/%d): errored",
+                               idx, total, rel, attempt, MAX_RETRY)
                 if attempt < MAX_RETRY:
                     await asyncio.sleep(2)
                     continue
@@ -165,7 +167,8 @@ async def import_all(files: list[Path], dry_run: bool) -> tuple[int, int]:
 def main() -> None:
     """エントリーポイント"""
     parser = argparse.ArgumentParser(description="user_chunks/をCogneeに投入")
-    parser.add_argument("--dry-run", action="store_true", help="ファイル一覧を表示するだけ（投入しない）")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="ファイル一覧を表示するだけ（投入しない）")
     args = parser.parse_args()
 
     if not INPUT_DIR.exists():
