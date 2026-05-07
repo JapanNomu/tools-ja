@@ -37,7 +37,7 @@
     ]
   },
 
-  "_comment_v030_arch": "v0.3.0 アーキテクチャ: 上記の hook はキュー (~/.claude/cognee_pending_remembers.jsonl) への追記のみ行う。キュー処理は cognee-queue-flush skill が同 Claude Code セッション内で動作し、/loop または CronCreate でスケジュール起動する。これにより BUG-008 (Ladybug DB ロック競合) を回避する: 新しい cognee-mcp プロセスは spawn されない。",
+  "_comment_v030_arch": "v0.3.0 アーキテクチャ: 上記の hook はキュー (~/.claude/cognee_pending_remembers.jsonl) への追記のみ行う。キュー処理は cognee-queue-flush skill が同 Claude Code セッション内で動作し、/loop または CronCreate でスケジュール起動する。これにより Ladybug DB ロック競合エラー (Could not set lock on file) を回避する: 新しい cognee-mcp プロセスは spawn されない。",
   "_comment_queue_flush_setup": "ハーネス導入後、Claude Code 内で /loop 5m cognee-queue-flush を実行するか、CronCreate で定期実行をスケジュールする。詳細は harness/skills/cognee-queue-flush/SKILL.md を参照。",
-  "_comment_v022_legacy_removed": "旧 cognee_remember_flusher.py hook は v0.3.0 で削除された。インストール・実行してはならない: 新しい cognee-mcp プロセスを spawn して BUG-008 を発火させる。代わりに cognee-queue-flush skill を使用すること。"
+  "_comment_v022_legacy_removed": "旧 cognee_remember_flusher.py hook は v0.3.0 で削除された。インストール・実行してはならない: 新しい cognee-mcp プロセスを spawn して Ladybug DB ロック競合エラーを発火させる。代わりに cognee-queue-flush skill を使用すること。"
 }

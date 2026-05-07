@@ -17,7 +17,7 @@ Stop hook は AI のターン終了時に呼ばれる。Claude Code が出力し
 - Claude Code 内蔵スケジューラ (loop / CronCreate) で起動するバッチ処理が
   同 Claude Code セッション内で動き、既存の MCP cognee サーバーを共有して
   `mcp__cognee__remember` を呼ぶ (新たな cognee-mcp プロセスを spawn しない)。
-  この設計により BUG-008 (Ladybug DB ロック競合) を回避する。
+  この設計により Ladybug DB ロック競合エラー (`Could not set lock on file`) を回避する。
 
 入力: stdin に JSON {"transcript_path": "...", "session_id": "..."} など
 出力: exit 0（常に許可。記録失敗してもターン終了はブロックしない）

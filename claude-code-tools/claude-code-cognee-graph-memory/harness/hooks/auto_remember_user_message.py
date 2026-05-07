@@ -13,7 +13,7 @@ UserPromptSubmit hook: ユーザー発言を Cognee グラフ記憶に自動登�
   (Claude Code 起動時から常駐の 1 個) を共有して `mcp__cognee__remember` を呼ぶ
   (新たな cognee-mcp プロセスを spawn しない)。
 
-この設計により BUG-008 (Ladybug DB ロック競合) を回避する: cognee-mcp プロセス数が
+この設計により Ladybug DB ロック競合エラー (`Could not set lock on file`) を回避する: cognee-mcp プロセス数が
 1 個のままなので、同 .lbug ファイルに対する同時ロック獲得要求は発生しない。
 
 UserPromptSubmit hook 内で MCP 呼び出しを直接行うと AI のターン開始が

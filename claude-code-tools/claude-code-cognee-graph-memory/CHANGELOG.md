@@ -5,6 +5,12 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.3.2] - 2026-05-07
+
+### Changed
+
+- ドキュメントクリーンアップの継続。配布物に同梱されていないスクリプトの設定例が `config/.env.example` に残っていたので削除しました。`harness/` 配下のコメント・docstring も軽微な表現修正を行っています。**コード・要件定義・設計書・テスト成果物には一切変更ありません。**
+
 ## [0.3.1] - 2026-05-07
 
 ### Changed
