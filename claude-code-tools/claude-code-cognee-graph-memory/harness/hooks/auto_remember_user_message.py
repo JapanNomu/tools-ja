@@ -5,11 +5,16 @@ UserPromptSubmit hook: ユーザー発言を Cognee グラフ記憶に自動登�
 ユーザーが送信したメッセージを、cognee MCP の `remember` 経由で
 グラフ記憶に永続登録する。セッション横断で文脈を引き出せるようになる。
 
-仕組み:
+仕組み (v0.3.0 アーキテクチャ):
 - UserPromptSubmit hook で stdin から prompt を受け取る
-- ローカルの一時ファイル ~/.claude/cognee_pending_remembers.jsonl に追記
-- 別プロセス cognee_remember_flusher.py が定期的にキューを読み出し
-  Cognee MCP の remember を実行する
+- ローカルの一時ファイル ~/.claude/cognee_pending_remembers.jsonl に追記する
+- Claude Code 内蔵スケジューラ (loop / CronCreate) で起動するバッチ処理が
+  同 Claude Code セッション内で動き、既存の MCP cognee サーバー
+  (Claude Code 起動時から常駐の 1 個) を共有して `mcp__cognee__remember` を呼ぶ
+  (新たな cognee-mcp プロセスを spawn しない)。
+
+この設計により BUG-008 (Ladybug DB ロック競合) を回避する: cognee-mcp プロセス数が
+1 個のままなので、同 .lbug ファイルに対する同時ロック獲得要求は発生しない。
 
 UserPromptSubmit hook 内で MCP 呼び出しを直接行うと AI のターン開始が
 遅延するため、本実装は非同期ファイルキュー方式を採用している。

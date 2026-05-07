@@ -1,5 +1,5 @@
 {
-  "_comment": "Cognee グラフ記憶ハーネスを有効化するための ~/.claude/settings.json マージ用サンプル。既存の settings.json と手動でマージしてください。各値の意味は docs/HARNESS_GUIDE.md を参照。",
+  "_comment": "Cognee グラフ記憶ハーネス (v0.3.0 アーキテクチャ) を有効化するための ~/.claude/settings.json マージ用サンプル。既存の settings.json と手動でマージしてください。各値の意味は docs/HARNESS_GUIDE.md を参照。",
 
   "hooks": {
     "UserPromptSubmit": [
@@ -25,7 +25,7 @@
   },
 
   "permissions": {
-    "_comment_permissions": "Cognee MCP の主要ツール呼び出しを自動許可（毎回プロンプトされないようにする）",
+    "_comment_permissions": "Cognee MCP の主要ツール呼び出しを自動許可 (毎回プロンプトされないようにする)",
     "allow": [
       "mcp__cognee__search",
       "mcp__cognee__recall",
@@ -33,10 +33,11 @@
       "mcp__cognee__cognify",
       "mcp__cognee__cognify_status",
       "mcp__cognee__list_data",
-      "Bash(python3 ~/.claude/hooks/cognee_remember_flusher.py*)"
+      "mcp__cognee__delete_dataset"
     ]
   },
 
-  "_comment_cron": "cognee_remember_flusher.py は別途 cron 等で定期実行を推奨。例（5分毎）:",
-  "_comment_cron_example": "*/5 * * * * /usr/bin/python3 /home/youruser/.claude/hooks/cognee_remember_flusher.py >> /home/youruser/.claude/cognee_flusher.log 2>&1"
+  "_comment_v030_arch": "v0.3.0 アーキテクチャ: 上記の hook はキュー (~/.claude/cognee_pending_remembers.jsonl) への追記のみ行う。キュー処理は cognee-queue-flush skill が同 Claude Code セッション内で動作し、/loop または CronCreate でスケジュール起動する。これにより BUG-008 (Ladybug DB ロック競合) を回避する: 新しい cognee-mcp プロセスは spawn されない。",
+  "_comment_queue_flush_setup": "ハーネス導入後、Claude Code 内で /loop 5m cognee-queue-flush を実行するか、CronCreate で定期実行をスケジュールする。詳細は harness/skills/cognee-queue-flush/SKILL.md を参照。",
+  "_comment_v022_legacy_removed": "旧 cognee_remember_flusher.py hook は v0.3.0 で削除された。インストール・実行してはならない: 新しい cognee-mcp プロセスを spawn して BUG-008 を発火させる。代わりに cognee-queue-flush skill を使用すること。"
 }

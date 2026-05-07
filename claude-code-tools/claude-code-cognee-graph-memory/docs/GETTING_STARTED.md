@@ -36,8 +36,8 @@
 
 - 検証環境: GPU **NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）** / RAM 32GB
 - 検証LLM: **qwen2.5:14b**（num_ctx=8192）
-- 検証Cogneeバージョン: **1.0.5（Ladybug DB）**
-- 検証結果: **35/40 成功**（remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・cognify 5/5 ✅・improve 5/5 ✅・forget_memory 5/5 ✅・**save_interaction 0/5 ❌**＝既知の制限事項・後述）
+- 検証Cogneeバージョン: **1.0.8 (Ladybug DB・v0.3.0 で 1.0.5 から更新)**
+- 検証結果: **35/40 成功** (v0.2.0 リリース時の cognee 1.0.5 環境での実測値) (remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・cognify 5/5 ✅・improve 5/5 ✅・forget_memory 5/5 ✅・**save_interaction 0/5 ❌** = 既知の制限事項・後述)。v0.3.0 では cognee 1.0.8 ベースで新アーキテクチャ用 BATCH 系テスト 21 件 (UT 12 + IT 4 + ET 3 + ST 2・Claude Code 内 skill によるキュー drain を検証) を全件 PASSED で実証済
 - 応答時間（Ladybug DB環境下の実測値）:
   - search(CHUNKS): 平均 3.2秒（決定論的・LLM不使用）
   - search(GRAPH_COMPLETION): 平均 14.6秒（範囲 12〜18秒）
@@ -56,6 +56,8 @@
 ---
 
 ## Step 1: 同梱サンプルで動作確認
+
+> ⚠️ **重要 (v0.3.0)**: `load_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を起動していない状態で実行する** (起動中だと BUG-008 ロック競合を引き起こす)。Step 1 完了後、Step 2 で Claude Code を起動できる。
 
 ターミナルで以下を実行します。
 
@@ -78,12 +80,18 @@ src/venv/bin/python3 src/sample_src/load_sample.py
 
 ローカルLLM運用時は LLM の応答が不安定で構造化出力エラーが発生し、5回リトライしても失敗することがあります（`InstructorRetryException` / `Field required` などのエラー）。失敗した場合は以下の手順で再実行してください。
 
+> ⚠️ **重要 (v0.3.0)**: `delete_sample.py` と `load_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を起動していない状態で実行する** (BUG-008 ロック競合を回避するため)。Claude Code が起動中なら一旦終了してから実行し、後で再起動する。
+
 ```bash
+# Claude Code を終了済みであることを確認 (claude プロセスが残っていない)
+
 # 投入済みのサンプルを削除（中途半端な状態をクリア）
 src/venv/bin/python3 src/sample_src/delete_sample.py
 
 # サンプル再投入
 src/venv/bin/python3 src/sample_src/load_sample.py
+
+# ここから Claude Code を起動できる
 ```
 
 それでも失敗が繰り返される場合は、Ollamaが応答できる状態か（`ollama list` でモデルが見えるか）、より上位のローカルLLM（例: `qwen2.5:32b` / `qwen2.5:72b` / `llama3.3:70b`）を `config/.env` の `LLM_MODEL` で試すか、**クラウドAPI（Claude / OpenAI）への切替を検討してください**。クラウドAPI 運用ならばこのエラーはほぼ発生しません。
@@ -182,10 +190,27 @@ recall("Djangoのmigrateで気をつけることは？")
 
 ### Step 4-1: サンプルデータを削除（任意）
 
-サンプルが不要になった場合：
+サンプルが不要になった場合、以下の **どちらか** の方法を選びます:
+
+**方法 A (推奨): Claude Code 内から MCP ツール経由で削除** (Claude Code 起動中で OK)
+
+Claude Code 内で以下のように依頼します:
+
+```
+sample_knowledge データセットを削除してください
+```
+
+Claude が `mcp__cognee__delete_dataset(dataset_name="sample_knowledge")` を呼び出します。既存の MCP cognee サーバーを使う (新プロセス spawn なし) ため、Claude Code 起動中でも安全に実行できます。
+
+**方法 B: CLI スクリプトで削除** (Claude Code を終了する必要がある)
+
+> ⚠️ **重要 (v0.3.0)**: `delete_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を先に終了する** こと、さもなければ BUG-008 ロック競合を引き起こす。
 
 ```bash
+# Claude Code を終了済みであることを確認 (claude プロセスが残っていない)
 src/venv/bin/python3 src/sample_src/delete_sample.py
+
+# ここから Claude Code を再起動できる
 ```
 
 `sample_knowledge` データセットだけが削除されます。
@@ -215,7 +240,10 @@ src/venv/bin/python3 src/knowledge_src/split_knowledge.py
 
 ### Step 4-4: ノウハウを投入
 
+> ⚠️ **重要 (v0.3.0)**: `import_knowledge.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を先に終了する** こと、さもなければ BUG-008 ロック競合を引き起こす。スクリプト実行は Claude Code 終了中に行い、完了後に再起動する。
+
 ```bash
+# Claude Code を終了済みであることを確認 (claude プロセスが残っていない)
 src/venv/bin/python3 src/knowledge_src/import_knowledge.py
 ```
 

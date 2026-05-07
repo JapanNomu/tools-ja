@@ -1,7 +1,7 @@
 # Claude Code + Cognee グラフ記憶システム
 
-**Version**: 0.2.1  
-**動作実証 Cognee バージョン**: 1.0.5（Ladybug DB対応）
+**Version**: 0.3.0  
+**動作実証 Cognee バージョン**: 1.0.8 (Ladybug DB対応)
 
 Claude Codeにグラフ記憶を追加するモジュールです。セッションをまたいで作業の記憶（ルール・教訓・設計決定・障害記録）を蓄積し、後のセッションで引き出せるようにします。
 
@@ -48,18 +48,19 @@ Cognee 1.0.4 で導入された **Ladybug DB** によりグラフ走査が高速
 | `remember`（cognify同期実行） | 平均 92秒（範囲 44〜237秒） | エンティティ抽出含む |
 | `cognify`（バックグラウンド処理） | 平均 145秒（範囲 99〜232秒） | 長文ドキュメント・MCP timeout回避のためバックグラウンド |
 
-検証環境: NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）/ RAM 32GB / qwen2.5:14b（num_ctx=8192）/ Cognee 1.0.5（Ladybug DB）
+検証環境: NVIDIA GeForce RTX 4060 Laptop GPU (VRAM 8GB) / RAM 32GB / qwen2.5:14b (num_ctx=8192) / Cognee 1.0.5 (Ladybug DB) (※ 上記表は v0.2.0 リリース時の実測値。v0.3.0 では cognee 1.0.8 ベースで新アーキテクチャ用の BATCH 系テスト (Claude Code 内 skill によるキュー drain を検証) を実施し全件 PASSED 済)
 
 ---
 
-## 制限事項（v0.2.0 既知の問題）
+## 制限事項 (v0.2.0 既知の問題・v0.3.0 でも同一の cognee-mcp 0.5.4 を使うため継続該当)
 
 - **`save_interaction` ツールは利用不可**
   - エラー: `add_rule_associations() got an unexpected keyword argument 'context'`
-  - 原因: cognee-mcp 0.5.4 と cognee 1.0.5 の API 不整合（cognee 1.0.5 で引数 `context` → `ctx` にリネームされたが、cognee-mcp が未追従）
+  - 原因: cognee-mcp 0.5.4 と cognee の API 不整合 (cognee 1.0.5 以降で引数 `context` → `ctx` にリネームされたが、cognee-mcp 0.5.4 が未追従)
   - 代替案: 会話ペアを永続記憶に即時保存したい場合は `remember(data="User: ... / Assistant: ...")` を使用
 
-その他のツール（`remember` / `search` / `recall` / `cognify` / `improve` / `forget_memory` 等）は v0.2.0 で完全動作を実証済みです。
+その他のツール (`remember` / `search` / `recall` / `cognify` / `improve` / `forget_memory` 等) は v0.2.0 で完全動作を実証済みです。
+v0.3.0 では BUG-008 (Ladybug DB ロック競合) / BUG-009 (`mcp__cognee__remember` が `is_error=False` で失敗を返した際のサイレントデータロスト) の対処を実施。キュー drain は v0.2.x の OS レベル `harness/hooks/cognee_remember_flusher.py` (廃止) から、新規の Claude Code 内 skill `harness/skills/cognee-queue-flush/SKILL.md` に移行しました。skill は既に起動中の MCP cognee サーバに対して `mcp__cognee__remember` を呼ぶため、新たな `cognee-mcp` プロセスを spawn しません。新アーキテクチャは BATCH テスト 21 件 (UT 12 + IT 4 + ET 3 + ST 2) で全件 PASSED に加え、V03-SETUP-4 実機検証で BUG-008 再現条件下での MCP `remember` / `search` / `delete_dataset` 累計 50 回以上**ロック競合 0 回**を確認済みです。
 
 ---
 

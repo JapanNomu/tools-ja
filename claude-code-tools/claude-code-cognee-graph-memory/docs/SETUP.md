@@ -130,6 +130,46 @@ claude mcp list  # cognee が ✓ Connected で表示されれば完了
 - VSCode: Claude Codeパネルの「MCP servers」画面で `cognee: ✓ Connected` が表示されることを確認
 - セッション内: `/mcp` を実行して `cognee: connected` が表示されることを確認
 
+### 2-4. キュー処理バッチを定期起動する設定 (v0.3.0)
+
+hook (`auto_remember_user_message.py` / `auto_remember_completion.py`) はキューファイル (`~/.claude/cognee_pending_remembers.jsonl`) への追記のみを行う。キューを実際に Cognee グラフ記憶に永続化するには、`cognee-queue-flush` skill を Claude Code セッション内で定期実行する必要がある。
+
+**アーキテクチャ根拠**: この skill は同じ Claude Code プロセス内 ("live in the current process") で動作し、既存の MCP cognee サーバーを再利用する。新たな cognee-mcp プロセスを spawn しない。これにより BUG-008 (Ladybug DB ロック競合) を回避する。
+
+**初期設定**: Claude Code 内で skill を定期スケジュールに登録する。以下のいずれかを選択:
+
+| 方法 | コマンド | ライフタイム |
+|---|---|---|
+| `/loop` (対話的) | `/loop 5m cognee-queue-flush` | **セッション内のみ** — Claude Code 終了で消える |
+| `CronCreate` (セッション内) | Claude Code 内で `CronCreate(cron="*/5 * * * *", prompt="cognee-queue-flush", recurring=true)` | **セッション内のみ** — Claude Code 終了で消える |
+| `CronCreate(durable=true)` (永続) | Claude Code 内で `CronCreate(cron="*/5 * * * *", prompt="cognee-queue-flush", recurring=true, durable=true)` | **永続** — `~/.claude/scheduled_tasks.json` に保存・次回起動時に自動復元 |
+
+推奨頻度は **5 分ごと**。必要に応じて調整。
+
+**永続化の補足**: `/loop` および `CronCreate(durable=false)` の登録は 1 つの Claude Code セッション内でのみ有効です。Claude Code を再起動するたびに再登録が必要になります。再起動後も維持したい場合は `CronCreate(durable=true)` を使ってください。
+
+**`/loop` は永続化できません** — スラッシュコマンドには `durable` オプションがなく、`durable=true` 形式は `CronCreate` Tool でしか実行できません。Tool は **Claude Code (AI) が呼ぶもので、ユーザーが直接タイプするものではありません**。永続化したい場合は、Claude Code のチャットで一度だけ AI に依頼してください:
+
+> `CronCreate` を `cron="*/5 * * * *"`、`prompt="cognee-queue-flush"`、`recurring=true`、`durable=true` で呼んでください。再起動後もキューの drain が続くように。
+
+AI が Tool を 1 回呼べば登録は保存され、以降は依頼不要です。
+
+詳細 (1 回の起動で処理する件数チューニング `COGNEE_QUEUE_FLUSH_MAX_PER_RUN`、永続化のトレードオフなど) は `docs/HARNESS_GUIDE.md` Step 4 を参照。
+
+**動作確認**: 設定後、Claude Code にメッセージを送信し、5 分待ってから Claude Code 内で `mcp__cognee__search(search_query="<最近の文章>", search_type="CHUNKS")` を実行する。最近の文章が取得できれば成功。
+
+### 2-5. CLI ツール使用制約 (v0.3.0)
+
+以下の CLI ツールは新たな `cognee-mcp` プロセスを spawn するため、**Claude Code を起動している間は実行してはならない** (BUG-008 ロック競合を引き起こす):
+
+- `src/sample_src/load_sample.py` (同梱サンプル投入)
+- `src/sample_src/delete_sample.py` (サンプルデータセット削除)
+- `src/knowledge_src/import_knowledge.py` (自分のノウハウファイルの投入)
+
+**使用ルール**: これらのツールは **Claude Code を起動する前に実行する**、または Claude Code 終了後に実行する。
+
+**削除の代替手段**: Claude Code が起動中にデータセットを削除したい場合は、CLI スクリプトの代わりに Claude Code 内から `mcp__cognee__delete_dataset` を呼び出す。
+
 ---
 
 ## 3. 依存パッケージバージョン固定方針
@@ -138,8 +178,9 @@ claude mcp list  # cognee が ✓ Connected で表示されれば完了
 |------|------|
 | インストール方法 | `pip install cognee-mcp "cognee[fastembed]"` で最新版を使用 |
 | バージョン固定ファイル | `src/requirements.txt`（未作成・将来対応） |
-| 動作確認バージョン | Cognee 1.0.5・cognee-mcp 0.5.4・ladybug 0.16.0（2026-05-04時点） |
-| バージョン固定が必要な場合 | `pip install "cognee-mcp==0.5.4" "cognee[fastembed]==1.0.5"` で固定バージョンを試す |
+| 動作確認バージョン | Cognee 1.0.8・cognee-mcp 0.5.4・ladybug (cognee 1.0.8 同梱バージョン)・BATCH テスト全 21 件 PASSED (2026-05-07 時点・v0.3.0) |
+| バージョン固定が必要な場合 | `pip install "cognee-mcp==0.5.4" "cognee[fastembed]==1.0.8"` で固定バージョンを試す |
+| Ollama 利用時の必須設定 | cognee 1.0.7/1.0.8 で test_llm_connection が `/v1` なし URL を叩いて 404 になるリグレッションあり。`config/.env` に `LLM_ENDPOINT=http://localhost:11434/v1` (`/v1` 必須) と `COGNEE_SKIP_CONNECTION_TEST=true` を設定する。`.env.example` に既定値あり |
 
 ---
 

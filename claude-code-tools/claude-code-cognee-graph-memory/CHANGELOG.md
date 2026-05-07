@@ -5,6 +5,44 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.3.0] - 2026-05-07
+
+### Fixed
+
+- **BUG-008 — Ladybug DB の `Could not set lock on file` が発生しなくなりました** (Zenn 記事 v0.2.1 にて **uzuchi 様**よりご報告いただいた事象)。
+  - **変更前 (v0.2.1)**: 別プロセスで動く `harness/hooks/cognee_remember_flusher.py` (`crontab -e` または `nohup ... --daemon` で起動) が、キュー drain のたびに **新たな `cognee-mcp` プロセスを spawn** していました。CLI ヘルパー `src/sample_src/load_sample.py` / `src/sample_src/delete_sample.py` / `src/knowledge_src/import_knowledge.py` も同様です。Claude Code を起動した状態では既に `cognee-mcp` を 1 つ保持しているため、2 つ目の spawn が Ladybug DB の non-blocking ロック (`fcntl(F_SETLK, F_WRLCK)`) に当たって即時失敗していました。
+  - **変更後 (v0.3.0)**: 起動中の Claude Code セッション**内**で動く新 skill `harness/skills/cognee-queue-flush/SKILL.md` がキューを drain します。スケジュールは `/loop 5m cognee-queue-flush` (セッション内のみ) または `CronCreate(cron="*/5 * * * *", prompt="cognee-queue-flush", recurring=true, durable=true)` (`~/.claude/scheduled_tasks.json` に保存・再起動後も自動復元) で登録します。skill は **既存の** MCP cognee サーバに対して `mcp__cognee__remember` を呼ぶため、新しい `cognee-mcp` プロセスは一切作成されません。CLI ヘルパーは **Claude Code を起動していない状態** でのみ実行する規約とし、削除に関しては Claude Code 起動中でも安全に呼べる代替手段として `mcp__cognee__delete_dataset` を案内します。BUG-008 の再現条件下で MCP `remember` / `search` / `delete_dataset` を累計 50 回以上呼び出して**ロック競合 0 回**を確認しています。
+
+- **BUG-009 — `mcp__cognee__remember` の失敗がキューからサイレントに削除される問題を修正しました**。
+  - **変更前 (v0.2.1)**: cognee-mcp upstream は失敗時にも `is_error=False` を返し、本文に `Error:` 始まりの文字列を入れます。v0.2.x の flusher は戻り値を破棄していたため (`# result =` のコメントアウト)、失敗エントリも処理済として削除されデータロストが発生していました。
+  - **変更後 (v0.3.0)**: 新 skill 内に 3 重失敗判定 (`is_error=True` / `content[*].text` が `Error:` 始まり / 例外発生) を実装。失敗エントリは `~/.claude/cognee_failed_remembers.jsonl` に退避し、キューにも残るため次回発火で再試行されます。
+
+### Changed
+
+- **Cognee バージョン 1.0.5 → 1.0.8**。`pip install "cognee[fastembed]==1.0.8"` で固定。cognee 1.0.7 / 1.0.8 には Ollama リグレッション (`test_llm_connection` が `/v1` なし URL を叩いて 404) があるため、`config/.env.example` に `LLM_ENDPOINT=http://localhost:11434/v1` (`/v1` 必須) と `COGNEE_SKIP_CONNECTION_TEST=true` を既定設定済み。
+- **`cognee-queue-flush` skill が 1 回の発火で処理するキュー件数の上限を環境変数 `COGNEE_QUEUE_FLUSH_MAX_PER_RUN` で指定できるようになりました (デフォルト 3 件)**。1 件の `mcp__cognee__remember` 呼び出しは LLM や PC スペック次第で数秒〜数十秒かかり、1 回の drain がスケジュール間隔を超えると次回発火と重なるため、ユーザー環境に合わせて調整するための仕組みです。`docs/HARNESS_GUIDE.md` Step 4 と `docs/SETUP.md` §2-4 に目安値 (cloud LLM 10〜20 / qwen2.5:14b GPU 3〜5 / CPU のみ 1〜2 / 小型ローカルモデル 5〜10) を記載しています。
+- **`docs/HARNESS_GUIDE.md` と `docs/SETUP.md` を全面改訂**: Step 1 の skill インストール手順、Step 4 の `/loop` / `CronCreate` 設定、「ライフタイム」列によるセッション内のみ vs `durable=true` 永続化の違いを明記。`harness/settings.example.json` も flusher 関連 hook と Bash 許可を削除し、skill 起動への参照に置換。
+
+### Removed
+
+- `harness/hooks/cognee_remember_flusher.py` および OS レベルの `crontab -e` / `nohup --daemon` 起動経路を削除。詳細は **マイグレーション** を参照。
+
+### マイグレーション (v0.2.1 から)
+
+1. v0.3.0 を取得します。
+2. `docs/HARNESS_GUIDE.md` Step 1 を再実行 (hook 再コピー + 新 skill ディレクトリ `harness/skills/cognee-queue-flush` を `~/.claude/skills/` へコピー)。
+3. 不要になった `~/.claude/hooks/cognee_remember_flusher.py` を削除し、`crontab -e` から `*/5 * * * * .../cognee_remember_flusher.py` 行を消去。
+4. Claude Code を再起動 (新 skill を認識させるため)。
+5. 新セッション内で schedule を 1 回だけ登録: `/loop 5m cognee-queue-flush` を入力する、または再起動後も維持したい場合は AI に `CronCreate(cron="*/5 * * * *", prompt="cognee-queue-flush", recurring=true, durable=true)` を実行してもらう (`durable=true` は AI 側 `CronCreate` Tool でしか指定できず、`/loop` スラッシュコマンドからは指定不可)。
+
+### Known Issues
+
+- **save_interaction は引き続き利用不可** (BUG-007)。**cognee-mcp 0.5.4 が cognee 1.0.8 の `add_rule_associations` 関数を呼ぶ際に引数名 `context=...` を渡しますが、cognee 側はすでに引数名を `ctx=...` にリネーム済みのため、引数名不整合で呼び出しに失敗します**。対話テキストの即時永続化は `remember` を利用してください。upstream の cognee-mcp プロジェクトで追跡中。
+
+### Special Thanks
+
+- **uzuchi 様** — Zenn 記事 v0.2.1 のコメントで `Could not set lock on file` の事象と再現条件 (Windows ネイティブ Claude Code → `wsl.exe -d Ubuntu-24.04 -- python3 .../start_cognee_mcp.py` を stdio transport で登録・`shared_ladybug_lock` 未設定・Redis 未起動) を詳細に共有してくださったことが、本件全面改修の出発点となりました。ありがとうございます。
+
 ## [0.2.1] - 2026-05-04
 
 ### Changed
