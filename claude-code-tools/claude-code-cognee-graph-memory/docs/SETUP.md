@@ -134,7 +134,7 @@ claude mcp list  # cognee が ✓ Connected で表示されれば完了
 
 hook (`auto_remember_user_message.py` / `auto_remember_completion.py`) はキューファイル (`~/.claude/cognee_pending_remembers.jsonl`) への追記のみを行う。キューを実際に Cognee グラフ記憶に永続化するには、`cognee-queue-flush` skill を Claude Code セッション内で定期実行する必要がある。
 
-**アーキテクチャ根拠**: この skill は同じ Claude Code プロセス内 ("live in the current process") で動作し、既存の MCP cognee サーバーを再利用する。新たな cognee-mcp プロセスを spawn しない。これにより BUG-008 (Ladybug DB ロック競合) を回避する。
+**アーキテクチャ根拠**: この skill は同じ Claude Code プロセス内 ("live in the current process") で動作し、既存の MCP cognee サーバーを再利用する。新たな cognee-mcp プロセスを spawn しない。これにより Ladybug DB ロック競合エラー (`Could not set lock on file`) を回避する。
 
 **初期設定**: Claude Code 内で skill を定期スケジュールに登録する。以下のいずれかを選択:
 
@@ -160,7 +160,7 @@ AI が Tool を 1 回呼べば登録は保存され、以降は依頼不要で�
 
 ### 2-5. CLI ツール使用制約 (v0.3.0)
 
-以下の CLI ツールは新たな `cognee-mcp` プロセスを spawn するため、**Claude Code を起動している間は実行してはならない** (BUG-008 ロック競合を引き起こす):
+以下の CLI ツールは新たな `cognee-mcp` プロセスを spawn するため、**Claude Code を起動している間は実行してはならない** (Ladybug DB ロック競合エラー `Could not set lock on file` を引き起こす):
 
 - `src/sample_src/load_sample.py` (同梱サンプル投入)
 - `src/sample_src/delete_sample.py` (サンプルデータセット削除)

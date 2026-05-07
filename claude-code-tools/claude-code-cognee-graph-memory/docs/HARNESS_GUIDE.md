@@ -79,7 +79,7 @@ cp -r harness/skills/cognee-queue-flush ~/.claude/skills/
 > `cognee_remember_flusher.py`（cron 起動）が担っていました。v0.3.0 では
 > `cognee-queue-flush` skill に置き換わり、**起動中の Claude Code セッション内で
 > 動作・既存 MCP cognee サーバを共有** します。新たに `cognee-mcp` プロセスを
-> spawn しないため、BUG-008（Ladybug DB ロック競合）が発生しません。
+> spawn しないため、Ladybug DB ロック競合エラー (`Could not set lock on file`) が発生しません。
 
 ### Step 2: ~/.claude/settings.json をマージ
 
@@ -112,9 +112,9 @@ skill（既存 MCP cognee サーバ経由で remember 呼び出し・新プロ�
 
 > **v0.3.0 で OS レベル cron を使わない理由**: OS レベル cron で起動すると
 > その都度新しい `cognee-mcp` プロセスを spawn し、Claude Code セッションが
-> すでに保持している MCP cognee サーバと衝突して BUG-008（Ladybug DB ロック競合）
-> を引き起こします。Claude Code 内蔵スケジューラなら 1 プロセス内で完結するため
-> 衝突しません（v0.3.0 設計上の必須要件）。
+> すでに保持している MCP cognee サーバと衝突して Ladybug DB ロック競合エラー
+> (`Could not set lock on file`) を引き起こします。Claude Code 内蔵スケジューラなら
+> 1 プロセス内で完結するため衝突しません (v0.3.0 設計上の必須要件)。
 
 同じ理由で、CLI ヘルパー `src/sample_src/load_sample.py` および
 `src/sample_src/delete_sample.py` は **Claude Code が起動していない状態** でのみ

@@ -5,15 +5,21 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.3.1] - 2026-05-07
+
+### Changed
+
+- **ドキュメントクリーンアップ: 配布物から開発プロジェクト内 ID を削除しました。** v0.3.0 配布物には開発プロジェクト内のみで通用する ID (障害 ID BUG-007 / BUG-008 / BUG-009、要件 ID FR08-* / NF08 / NF09、タスク ID V03-*) が `README.md` / `docs/SETUP.md` / `docs/GETTING_STARTED.md` / `docs/HARNESS_GUIDE.md` / `harness/skills/cognee-queue-flush/SKILL.md` に多数残存していました。これらは配布物受領者にとって参照先がなく意味不明なため、v0.3.1 ですべて削除し、周辺文を具体的な記述に書き換えました (例: 「BUG-008」 → 「Ladybug DB ロック競合エラー (`Could not set lock on file`)」)。1 箇所の開発プロジェクト内ドキュメント参照 (`プロジェクトドキュメント内の BUG-008 fix_plan`) は `CHANGELOG.md` の v0.3.0 エントリへの参照に置き換えました。**コード・要件定義・設計書・テスト成果物には一切変更ありません。**
+
 ## [0.3.0] - 2026-05-07
 
 ### Fixed
 
-- **BUG-008 — Ladybug DB の `Could not set lock on file` が発生しなくなりました** (Zenn 記事 v0.2.1 にて **uzuchi 様**よりご報告いただいた事象)。
+- **Ladybug DB の `Could not set lock on file` が発生しなくなりました** (Zenn 記事 v0.2.1 にて **uzuchi 様**よりご報告いただいた事象)。
   - **変更前 (v0.2.1)**: 別プロセスで動く `harness/hooks/cognee_remember_flusher.py` (`crontab -e` または `nohup ... --daemon` で起動) が、キュー drain のたびに **新たな `cognee-mcp` プロセスを spawn** していました。CLI ヘルパー `src/sample_src/load_sample.py` / `src/sample_src/delete_sample.py` / `src/knowledge_src/import_knowledge.py` も同様です。Claude Code を起動した状態では既に `cognee-mcp` を 1 つ保持しているため、2 つ目の spawn が Ladybug DB の non-blocking ロック (`fcntl(F_SETLK, F_WRLCK)`) に当たって即時失敗していました。
-  - **変更後 (v0.3.0)**: 起動中の Claude Code セッション**内**で動く新 skill `harness/skills/cognee-queue-flush/SKILL.md` がキューを drain します。スケジュールは `/loop 5m cognee-queue-flush` (セッション内のみ) または `CronCreate(cron="*/5 * * * *", prompt="cognee-queue-flush", recurring=true, durable=true)` (`~/.claude/scheduled_tasks.json` に保存・再起動後も自動復元) で登録します。skill は **既存の** MCP cognee サーバに対して `mcp__cognee__remember` を呼ぶため、新しい `cognee-mcp` プロセスは一切作成されません。CLI ヘルパーは **Claude Code を起動していない状態** でのみ実行する規約とし、削除に関しては Claude Code 起動中でも安全に呼べる代替手段として `mcp__cognee__delete_dataset` を案内します。BUG-008 の再現条件下で MCP `remember` / `search` / `delete_dataset` を累計 50 回以上呼び出して**ロック競合 0 回**を確認しています。
+  - **変更後 (v0.3.0)**: 起動中の Claude Code セッション**内**で動く新 skill `harness/skills/cognee-queue-flush/SKILL.md` がキューを drain します。スケジュールは `/loop 5m cognee-queue-flush` (セッション内のみ) または `CronCreate(cron="*/5 * * * *", prompt="cognee-queue-flush", recurring=true, durable=true)` (`~/.claude/scheduled_tasks.json` に保存・再起動後も自動復元) で登録します。skill は **既存の** MCP cognee サーバに対して `mcp__cognee__remember` を呼ぶため、新しい `cognee-mcp` プロセスは一切作成されません。CLI ヘルパーは **Claude Code を起動していない状態** でのみ実行する規約とし、削除に関しては Claude Code 起動中でも安全に呼べる代替手段として `mcp__cognee__delete_dataset` を案内します。ご報告いただいた再現条件と同等の条件下で MCP `remember` / `search` / `delete_dataset` を累計 50 回以上呼び出して**ロック競合 0 回**を確認しています。
 
-- **BUG-009 — `mcp__cognee__remember` の失敗がキューからサイレントに削除される問題を修正しました**。
+- **`mcp__cognee__remember` の失敗がキューからサイレントに削除される問題を修正しました。**
   - **変更前 (v0.2.1)**: cognee-mcp upstream は失敗時にも `is_error=False` を返し、本文に `Error:` 始まりの文字列を入れます。v0.2.x の flusher は戻り値を破棄していたため (`# result =` のコメントアウト)、失敗エントリも処理済として削除されデータロストが発生していました。
   - **変更後 (v0.3.0)**: 新 skill 内に 3 重失敗判定 (`is_error=True` / `content[*].text` が `Error:` 始まり / 例外発生) を実装。失敗エントリは `~/.claude/cognee_failed_remembers.jsonl` に退避し、キューにも残るため次回発火で再試行されます。
 
@@ -37,11 +43,11 @@
 
 ### Known Issues
 
-- **save_interaction は引き続き利用不可** (BUG-007)。**cognee-mcp 0.5.4 が cognee 1.0.8 の `add_rule_associations` 関数を呼ぶ際に引数名 `context=...` を渡しますが、cognee 側はすでに引数名を `ctx=...` にリネーム済みのため、引数名不整合で呼び出しに失敗します**。対話テキストの即時永続化は `remember` を利用してください。upstream の cognee-mcp プロジェクトで追跡中。
+- **save_interaction は引き続き利用不可。** **cognee-mcp 0.5.4 が cognee 1.0.8 の `add_rule_associations` 関数を呼ぶ際に引数名 `context=...` を渡しますが、cognee 側はすでに引数名を `ctx=...` にリネーム済みのため、引数名不整合で呼び出しに失敗します**。対話テキストの即時永続化は `remember` を利用してください。upstream の cognee-mcp プロジェクトで追跡中。
 
 ### Special Thanks
 
-- **uzuchi 様** — Zenn 記事 v0.2.1 のコメントで `Could not set lock on file` の事象と再現条件 (Windows ネイティブ Claude Code → `wsl.exe -d Ubuntu-24.04 -- python3 .../start_cognee_mcp.py` を stdio transport で登録・`shared_ladybug_lock` 未設定・Redis 未起動) を詳細に共有してくださったことが、本件全面改修の出発点となりました。ありがとうございます。
+- **uzuchi 様** — Zenn 記事 v0.2.1 のコメントで `Could not set lock on file` の事象と再現条件 (Windows ネイティブ Claude Code → `wsl.exe -d Ubuntu-24.04 -- python3 .../start_cognee_mcp.py` を stdio transport で登録・`shared_ladybug_lock` 未設定・Redis 未起動) を詳細に共有してくださったことが、v0.3.0 で実施したロック競合の根本対処およびサイレントデータロスト対処を含むアーキテクチャ全面改修の出発点となりました。ありがとうございます。
 
 ## [0.2.1] - 2026-05-04
 

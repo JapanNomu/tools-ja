@@ -57,7 +57,7 @@
 
 ## Step 1: 同梱サンプルで動作確認
 
-> ⚠️ **重要 (v0.3.0)**: `load_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を起動していない状態で実行する** (起動中だと BUG-008 ロック競合を引き起こす)。Step 1 完了後、Step 2 で Claude Code を起動できる。
+> ⚠️ **重要 (v0.3.0)**: `load_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を起動していない状態で実行する** (起動中だと Ladybug DB ロック競合エラー `Could not set lock on file` を引き起こす)。Step 1 完了後、Step 2 で Claude Code を起動できる。
 
 ターミナルで以下を実行します。
 
@@ -80,7 +80,7 @@ src/venv/bin/python3 src/sample_src/load_sample.py
 
 ローカルLLM運用時は LLM の応答が不安定で構造化出力エラーが発生し、5回リトライしても失敗することがあります（`InstructorRetryException` / `Field required` などのエラー）。失敗した場合は以下の手順で再実行してください。
 
-> ⚠️ **重要 (v0.3.0)**: `delete_sample.py` と `load_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を起動していない状態で実行する** (BUG-008 ロック競合を回避するため)。Claude Code が起動中なら一旦終了してから実行し、後で再起動する。
+> ⚠️ **重要 (v0.3.0)**: `delete_sample.py` と `load_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を起動していない状態で実行する** (Ladybug DB ロック競合エラー `Could not set lock on file` を回避するため)。Claude Code が起動中なら一旦終了してから実行し、後で再起動する。
 
 ```bash
 # Claude Code を終了済みであることを確認 (claude プロセスが残っていない)
@@ -204,7 +204,7 @@ Claude が `mcp__cognee__delete_dataset(dataset_name="sample_knowledge")` を呼
 
 **方法 B: CLI スクリプトで削除** (Claude Code を終了する必要がある)
 
-> ⚠️ **重要 (v0.3.0)**: `delete_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を先に終了する** こと、さもなければ BUG-008 ロック競合を引き起こす。
+> ⚠️ **重要 (v0.3.0)**: `delete_sample.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を先に終了する** こと、さもなければ Ladybug DB ロック競合エラー `Could not set lock on file` を引き起こす。
 
 ```bash
 # Claude Code を終了済みであることを確認 (claude プロセスが残っていない)
@@ -240,7 +240,7 @@ src/venv/bin/python3 src/knowledge_src/split_knowledge.py
 
 ### Step 4-4: ノウハウを投入
 
-> ⚠️ **重要 (v0.3.0)**: `import_knowledge.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を先に終了する** こと、さもなければ BUG-008 ロック競合を引き起こす。スクリプト実行は Claude Code 終了中に行い、完了後に再起動する。
+> ⚠️ **重要 (v0.3.0)**: `import_knowledge.py` は新たな `cognee-mcp` プロセスを spawn する。**Claude Code を先に終了する** こと、さもなければ Ladybug DB ロック競合エラー `Could not set lock on file` を引き起こす。スクリプト実行は Claude Code 終了中に行い、完了後に再起動する。
 
 ```bash
 # Claude Code を終了済みであることを確認 (claude プロセスが残っていない)

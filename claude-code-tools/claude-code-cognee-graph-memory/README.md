@@ -1,6 +1,6 @@
 # Claude Code + Cognee グラフ記憶システム
 
-**Version**: 0.3.0  
+**Version**: 0.3.1  
 **動作実証 Cognee バージョン**: 1.0.8 (Ladybug DB対応)
 
 Claude Codeにグラフ記憶を追加するモジュールです。セッションをまたいで作業の記憶（ルール・教訓・設計決定・障害記録）を蓄積し、後のセッションで引き出せるようにします。
@@ -60,7 +60,7 @@ Cognee 1.0.4 で導入された **Ladybug DB** によりグラフ走査が高速
   - 代替案: 会話ペアを永続記憶に即時保存したい場合は `remember(data="User: ... / Assistant: ...")` を使用
 
 その他のツール (`remember` / `search` / `recall` / `cognify` / `improve` / `forget_memory` 等) は v0.2.0 で完全動作を実証済みです。
-v0.3.0 では BUG-008 (Ladybug DB ロック競合) / BUG-009 (`mcp__cognee__remember` が `is_error=False` で失敗を返した際のサイレントデータロスト) の対処を実施。キュー drain は v0.2.x の OS レベル `harness/hooks/cognee_remember_flusher.py` (廃止) から、新規の Claude Code 内 skill `harness/skills/cognee-queue-flush/SKILL.md` に移行しました。skill は既に起動中の MCP cognee サーバに対して `mcp__cognee__remember` を呼ぶため、新たな `cognee-mcp` プロセスを spawn しません。新アーキテクチャは BATCH テスト 21 件 (UT 12 + IT 4 + ET 3 + ST 2) で全件 PASSED に加え、V03-SETUP-4 実機検証で BUG-008 再現条件下での MCP `remember` / `search` / `delete_dataset` 累計 50 回以上**ロック競合 0 回**を確認済みです。
+v0.3.0 では Ladybug DB ロック競合エラー (`Could not set lock on file`) と、関連するサイレントデータロスト問題 (`mcp__cognee__remember` が `is_error=False` のまま失敗を返した際にキューから削除されてしまう問題) の対処を実施。キュー drain は v0.2.x の OS レベル `harness/hooks/cognee_remember_flusher.py` (廃止) から、新規の Claude Code 内 skill `harness/skills/cognee-queue-flush/SKILL.md` に移行しました。skill は既に起動中の MCP cognee サーバに対して `mcp__cognee__remember` を呼ぶため、新たな `cognee-mcp` プロセスを spawn しません。新アーキテクチャは BATCH テスト 21 件 (UT 12 + IT 4 + ET 3 + ST 2) で全件 PASSED に加え、ご報告いただいた事象と同等の再現条件下での MCP `remember` / `search` / `delete_dataset` を実機で累計 50 回以上呼び出して**ロック競合 0 回**を確認済みです。
 
 ---
 

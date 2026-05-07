@@ -1,6 +1,6 @@
 ---
 name: cognee-queue-flush
-description: hook が溜め込んだ Cognee remember キューを定期的に処理する skill。Claude Code の loop / CronCreate スケジューラで起動して、~/.claude/cognee_pending_remembers.jsonl の各エントリを既存の MCP cognee サーバー (mcp__cognee__remember) で 1 件ずつ登録する (新たな cognee-mcp プロセスを spawn しない)。BUG-008 (Ladybug DB ロック競合) を回避する。
+description: hook が溜め込んだ Cognee remember キューを定期的に処理する skill。Claude Code の loop / CronCreate スケジューラで起動して、~/.claude/cognee_pending_remembers.jsonl の各エントリを既存の MCP cognee サーバー (mcp__cognee__remember) で 1 件ずつ登録する (新たな cognee-mcp プロセスを spawn しない)。Ladybug DB ロック競合エラー (Could not set lock on file) を回避する。
 ---
 
 # cognee-queue-flush
@@ -14,7 +14,7 @@ description: hook が溜め込んだ Cognee remember キューを定期的に処
 - キュー: `~/.claude/cognee_pending_remembers.jsonl`
 - 各行: `{"timestamp": "...", "session_id": "...", "dataset_name": "...", "data": "..."}`
 
-hook は **キュー追記のみ** を行う・cognee は呼ばない。hook 内で cognee を呼ぶと、AI のターン開始が遅延するか、新しい cognee-mcp プロセスを spawn して BUG-008 (ロック競合) を引き起こす。よって別途バッチ処理が必要となる。
+hook は **キュー追記のみ** を行う・cognee は呼ばない。hook 内で cognee を呼ぶと、AI のターン開始が遅延するか、新しい cognee-mcp プロセスを spawn して Ladybug DB ロック競合エラー `Could not set lock on file` を引き起こす。よって別途バッチ処理が必要となる。
 
 この skill がそのバッチ処理である。**現在の Claude Code セッション内** で動作する (loop / CronCreate スケジューラで起動) ため、既存の MCP cognee サーバープロセスを共有する — 新たな cognee-mcp を spawn しないので、ロック競合は発生しない。
 
@@ -96,7 +96,7 @@ Step 3 で処理した N 件について:
 
 結果を報告する: `(成功件数, 失敗件数, 残存件数)`。残存件数は Step 5 後にキューファイルに残っている件数 (失敗 + 未処理)。失敗件数 > 0 なら「失敗エントリは `~/.claude/cognee_failed_remembers.jsonl` にレビュー用に保存」と伝える。残存件数 > 0 が上限制御によるものであれば、次回起動で処理されることを伝える。
 
-## 重要な設計制約 (NF09 準拠)
+## 重要な設計制約 (新たな cognee-mcp プロセスを spawn しない)
 
 - **新たな `cognee-mcp` プロセスを spawn してはならない** (`fastmcp.StdioTransport` や `subprocess` 経由含む)。Claude Code セッションには既に cognee-mcp サーバーが起動している。`mcp__cognee__remember` 経由で再利用する。
 - **`claude mcp add` で新規 MCP サーバーをインストールしてはならない**。MCP cognee サーバーは既に登録済み。
@@ -120,5 +120,5 @@ Step 3 で処理した N 件について:
 ## 関連
 
 - hook: `harness/hooks/auto_remember_completion.py`, `harness/hooks/auto_remember_user_message.py` (キュー追記者)
-- アーキテクチャ根拠: プロジェクトドキュメント内の BUG-008 fix_plan
-- 検証: この skill は BUG-008 再現条件 (Claude Code 起動中 + 別の CLI スクリプトが自分の cognee-mcp を spawn) で動作確認する。期待される動作は、この skill が成功する一方で spawn する CLI スクリプトは失敗すること。それでアーキテクチャが正しく機能していることを確認できる。
+- アーキテクチャ根拠: `CHANGELOG.md` の v0.3.0 エントリを参照
+- 検証: この skill は別の CLI スクリプト (例: `src/sample_src/load_sample.py`) が同時に自身の `cognee-mcp` プロセスを spawn しても成功する想定です。spawn する CLI スクリプト側は Ladybug DB ロック競合エラー (`Could not set lock on file`) で失敗しますが、この skill は起動中の Claude Code セッション内で既存の MCP cognee サーバを共有して動作するため影響を受けません。
