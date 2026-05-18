@@ -178,9 +178,9 @@ AI が Tool を 1 回呼べば登録は保存され、以降は依頼不要で�
 |------|------|
 | インストール方法 | `pip install cognee-mcp "cognee[fastembed]"` で最新版を使用 |
 | バージョン固定ファイル | `src/requirements.txt`（未作成・将来対応） |
-| 動作確認バージョン | Cognee 1.0.8・cognee-mcp 0.5.4・ladybug (cognee 1.0.8 同梱バージョン)・BATCH テスト全 21 件 PASSED (2026-05-07 時点・v0.3.0) |
-| バージョン固定が必要な場合 | `pip install "cognee-mcp==0.5.4" "cognee[fastembed]==1.0.8"` で固定バージョンを試す |
-| Ollama 利用時の必須設定 | cognee 1.0.7/1.0.8 で test_llm_connection が `/v1` なし URL を叩いて 404 になるリグレッションあり。`config/.env` に `LLM_ENDPOINT=http://localhost:11434/v1` (`/v1` 必須) と `COGNEE_SKIP_CONNECTION_TEST=true` を設定する。`.env.example` に既定値あり |
+| 動作確認バージョン | Cognee 1.1.0・cognee-mcp 0.5.4・ladybug 0.16.0・fastembed 0.8.0 (v0.3.4・2026-05-18・SETUP.md/GETTING_STARTED.md 全手順実機検証済)。Cognee 1.0.8・cognee-mcp 0.5.4・ladybug (cognee 1.0.8 同梱バージョン)・BATCH テスト全 21 件 PASSED (2026-05-07 時点・v0.3.0) でも動作確認済 |
+| バージョン固定が必要な場合 | `pip install "cognee-mcp==0.5.4" "cognee[fastembed]==1.1.0"` で固定バージョンを試す |
+| Ollama 利用時の必須設定 | cognee 1.0.7/1.0.8/1.1.0 で test_llm_connection が `/v1` なし URL を叩いて 404 になるリグレッションあり。`config/.env` に `LLM_ENDPOINT=http://localhost:11434/v1` (`/v1` 必須) と `COGNEE_SKIP_CONNECTION_TEST=true` を設定する。`.env.example` に既定値あり |
 
 ---
 

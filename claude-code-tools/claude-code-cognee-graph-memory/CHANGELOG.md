@@ -5,6 +5,17 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 [Semantic Versioning](https://semver.org/lang/ja/spec/v2.0.0.html) に従います。
 
+## [0.3.4] - 2026-05-18
+
+### Changed
+
+- **動作実証 Cognee バージョンを 1.0.8 から 1.1.0 に更新しました。** 配布物の SETUP.md / GETTING_STARTED.md の手順を 1 ステップずつ実機検証し、cognee 1.1.0 環境でも全手順が無変更で通用すること、および GETTING_STARTED.md の体験シナリオ A〜D の search(CHUNKS) + recall (GRAPH_COMPLETION) が期待値完全一致で動作することを確認しました (search/recall 各 5 回計測実施)。**コード・要件定義・設計書・テスト成果物には一切変更ありません。** 配布物変更は cognee バージョン記述のみです (`docs/SETUP.md` バージョン固定指定: `cognee[fastembed]==1.0.8` → `==1.1.0`)。
+- **速度実測値を併記しました。** cognee 1.1.0 では Ladybug DB 環境下で以下の速度劣化を観測 (cognee 1.0.8 比):
+  - search(CHUNKS): 平均 3.2 秒 → 平均 10.58 秒 (約 3.3 倍遅い)
+  - recall (Q-A 相当・GRAPH_COMPLETION 経由): 20〜24 秒 → 平均 29.89 秒 (約 1.3〜1.5 倍遅い)
+- **Ladybug DB のバージョンは 0.16.0 のまま** (cognee 1.0.7/1.0.8/1.1.0 で同一バージョン同梱)。BUG-008 (Ladybug DB ロック競合エラー) の本質的制約は cognee 1.1.0 でも残存しているため、v0.3.0 で導入したセッション内 skill によるキュー drain アーキテクチャは引き続き必須です。
+- **Ollama リグレッション (test_llm_connection が `/v1` なし URL を叩いて 404) は cognee 1.1.0 でも残存しています。** `config/.env.example` の `LLM_ENDPOINT=http://localhost:11434/v1` + `COGNEE_SKIP_CONNECTION_TEST=true` の既定値は引き続き有効です。
+
 ## [0.3.2] - 2026-05-07
 
 ### Changed

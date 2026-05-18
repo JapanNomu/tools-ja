@@ -1,7 +1,7 @@
 # Claude Code + Cognee グラフ記憶システム
 
-**Version**: 0.3.2  
-**動作実証 Cognee バージョン**: 1.0.8 (Ladybug DB対応)
+**Version**: 0.3.4  
+**動作実証 Cognee バージョン**: 1.1.0 (Ladybug DB対応・2026-05-18 SETUP/GETTING_STARTED 全手順実機検証済)。v0.3.2 以前の 1.0.8 でも動作確認済。
 
 Claude Codeにグラフ記憶を追加するモジュールです。セッションをまたいで作業の記憶（ルール・教訓・設計決定・障害記録）を蓄積し、後のセッションで引き出せるようにします。
 
@@ -48,7 +48,7 @@ Cognee 1.0.4 で導入された **Ladybug DB** によりグラフ走査が高速
 | `remember`（cognify同期実行） | 平均 92秒（範囲 44〜237秒） | エンティティ抽出含む |
 | `cognify`（バックグラウンド処理） | 平均 145秒（範囲 99〜232秒） | 長文ドキュメント・MCP timeout回避のためバックグラウンド |
 
-検証環境: NVIDIA GeForce RTX 4060 Laptop GPU (VRAM 8GB) / RAM 32GB / qwen2.5:14b (num_ctx=8192) / Cognee 1.0.5 (Ladybug DB) (※ 上記表は v0.2.0 リリース時の実測値。v0.3.0 では cognee 1.0.8 ベースで新アーキテクチャ用の BATCH 系テスト (Claude Code 内 skill によるキュー drain を検証) を実施し全件 PASSED 済)
+検証環境: NVIDIA GeForce RTX 4060 Laptop GPU (VRAM 8GB) / RAM 32GB / qwen2.5:14b (num_ctx=8192) / Cognee 1.0.5 (Ladybug DB) (※ 上記表は v0.2.0 リリース時の実測値。v0.3.0 では cognee 1.0.8 ベースで新アーキテクチャ用の BATCH 系テスト (Claude Code 内 skill によるキュー drain を検証) を実施し全件 PASSED 済。v0.3.4 では cognee 1.1.0 ベースで SETUP/GETTING_STARTED 全手順実機検証済 (2026-05-18) — 速度は cognee 1.0.8 比で search(CHUNKS) 約 3.3 倍・recall 約 1.3〜1.5 倍に劣化 (詳細は GETTING_STARTED.md 参照))
 
 ---
 

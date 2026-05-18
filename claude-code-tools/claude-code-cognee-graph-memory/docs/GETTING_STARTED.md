@@ -36,13 +36,13 @@
 
 - 検証環境: GPU **NVIDIA GeForce RTX 4060 Laptop GPU（VRAM 8GB）** / RAM 32GB
 - 検証LLM: **qwen2.5:14b**（num_ctx=8192）
-- 検証Cogneeバージョン: **1.0.8 (Ladybug DB・v0.3.0 で 1.0.5 から更新)**
-- 検証結果: **35/40 成功** (v0.2.0 リリース時の cognee 1.0.5 環境での実測値) (remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・cognify 5/5 ✅・improve 5/5 ✅・forget_memory 5/5 ✅・**save_interaction 0/5 ❌** = 既知の制限事項・後述)。v0.3.0 では cognee 1.0.8 ベースで新アーキテクチャ用 BATCH 系テスト 21 件 (UT 12 + IT 4 + ET 3 + ST 2・Claude Code 内 skill によるキュー drain を検証) を全件 PASSED で実証済
-- 応答時間（Ladybug DB環境下の実測値）:
-  - search(CHUNKS): 平均 3.2秒（決定論的・LLM不使用）
-  - search(GRAPH_COMPLETION): 平均 14.6秒（範囲 12〜18秒）
-  - recall（Q-A・TEMPORAL routing）: 20〜24秒
-  - recall（Q-B・GRAPH_COMPLETION_COT routing）: 154〜156秒（Chain-of-Thought推論）
+- 検証Cogneeバージョン: **1.1.0 (Ladybug DB・v0.3.4 で 1.0.8 から更新・2026-05-18 SETUP/GETTING_STARTED 全手順実機検証済)**。v0.3.2 以前の cognee 1.0.8 でも動作確認済
+- 検証結果: **35/40 成功** (v0.2.0 リリース時の cognee 1.0.5 環境での実測値) (remember 5/5 ✅・search(CHUNKS) 5/5 ✅・search(GRAPH_COMPLETION) 5/5 ✅・recall 5/5 ✅・cognify 5/5 ✅・improve 5/5 ✅・forget_memory 5/5 ✅・**save_interaction 0/5 ❌** = 既知の制限事項・後述)。v0.3.0 では cognee 1.0.8 ベースで新アーキテクチャ用 BATCH 系テスト 21 件 (UT 12 + IT 4 + ET 3 + ST 2・Claude Code 内 skill によるキュー drain を検証) を全件 PASSED で実証済。v0.3.4 では cognee 1.1.0 ベースで SETUP/GETTING_STARTED 全手順実機検証済 (search/recall 各 5 回計測・期待値完全一致)
+- 応答時間（cognee 1.0.8 と 1.1.0 の比較・Ladybug DB環境下の実測値）:
+  - search(CHUNKS): cognee 1.0.8 平均 **3.2秒** / cognee 1.1.0 平均 **10.58秒** (5 回計測平均・約 3.3 倍遅い) (決定論的・LLM不使用)
+  - search(GRAPH_COMPLETION): cognee 1.0.8 平均 14.6秒（範囲 12〜18秒）/ cognee 1.1.0 未計測
+  - recall（Q-A・TEMPORAL routing）: cognee 1.0.8 20〜24秒 / cognee 1.1.0 GRAPH_COMPLETION 経由で平均 **29.89秒** (5 回計測平均・約 1.3〜1.5 倍遅い)
+  - recall（Q-B・GRAPH_COMPLETION_COT routing）: cognee 1.0.8 154〜156秒（Chain-of-Thought推論）/ cognee 1.1.0 未計測
   - improve / forget_memory: 全件即時（数秒以下）
 
 **Ladybug DB（Cognee 1.0.4で導入）により graph traversal が高速化**し、qwen2.5:14b でも GRAPH_COMPLETION・recall が実用レベルの速度で動作することが実証されました（v0.1.x の KuzuDB 環境より体感大幅改善）。
